@@ -1,0 +1,87 @@
+# AEROLAB X
+
+**Drone Design, Intelligence & Simulation Studio** — a modular, local-first engineering workstation for civilian UAVs and micro aerial vehicles: configuration, avionics, propulsion, energy, aerodynamics, structures, flight dynamics, mission planning, simulation, AI and engineering documentation, built around one shared project model.
+
+> **Status: Build 1 of 12 (Foundation), version 0.1.0.** The shell, project management, local persistence, engineering foundations and part of the Learning Centre are complete. Other modules are labelled *Planned* in the app and perform no calculations yet. See [`docs/roadmap.md`](docs/roadmap.md).
+
+Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
+
+## What Build 1 gives you
+
+- **Projects** — create, duplicate, tag, describe, version, compare, restore, Trash, import/export and full backups; autosave with protection against two tabs overwriting each other; undo/redo.
+- **Design requirements** — MTOW, payload, endurance, range, cruise airspeed, operating altitude and maximum wind, stored in SI units with display units of your choice, with live consistency checks (each shows its equation, inputs, assumptions and provenance).
+- **Standard atmosphere** — ISA (U.S. Standard Atmosphere 1976) to 86 km, validated against the published tables; air properties at the operating altitude.
+- **Learning Centre** — lessons on data provenance and model fidelity, SI units, and the standard atmosphere, with calculators and knowledge checks; searchable glossary.
+- **Workstation** — dark/light themes, command palette (`Ctrl/⌘ + K`), resizable inspector and engineering console (log, problems, calculation register), offline use and installable PWA.
+
+## Engineering honesty
+
+Every value is labelled with its provenance (requirement, user input, assumption, illustrative, datasheet, conceptual estimate, analytical, simulation, measured, validated). Results are preliminary estimates for learning and early design exploration — **not** certified engineering analysis, validated CFD/FEA, flight approval or regulatory authorisation. AEROLAB X never labels a design flight-ready.
+
+## Responsible use
+
+For civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue research aircraft. AEROLAB X contains no weapon design or integration, targeting, weapon release or delivery, autonomous attack or harmful-payload functions. AI and autonomy experiments run only in simulation and are never connected to physical flight controls.
+
+## Run locally
+
+No build step is needed to run the app; it must be served over `http(s)` (ES modules do not load from `file://`).
+
+```bash
+git clone https://github.com/batraamul/Drone_Design.git
+cd Drone_Design
+python3 -m http.server 8080        # or: npm run serve
+# open http://localhost:8080/
+```
+
+Data lives in your browser's IndexedDB for that address. Use **Settings → Export full backup** to keep a copy.
+
+## Develop and test
+
+Requires Node.js 22 or newer.
+
+```bash
+npm ci
+npm run check        # structural quality gate
+npm run test:unit    # unit, engineering, integration and regression tests (Node test runner)
+npm run build        # assemble _site/ (what GitHub Pages serves)
+npx playwright install chromium
+npm run test:e2e     # browser tests against _site/ under /Drone_Design/
+npm test             # all of the above
+```
+
+## Deployment
+
+GitHub Actions (`.github/workflows/ci-deploy.yml`) tests every push and deploys `main` to GitHub Pages after all gates pass. One-time setting: **Settings → Pages → Source: GitHub Actions**. Update behaviour for installed apps and local copies is described in [`docs/deployment.md`](docs/deployment.md).
+
+## Repository layout
+
+```
+index.html, manifest.json, service-worker.js, version.json
+css/            main, dashboard, engineering, responsive
+js/
+  app.js, router.js, database.js, project-manager.js, project-schema.js, state-manager.js, version.js
+  engineering/  units, provenance, atmosphere, requirements   (pure, tested models)
+  modules/      dashboard, projects, settings, planned-module, module-registry, learning/
+  ui/           shell, inspector, bottom panel, command palette, dialogs, notifications, components, icons
+  utils/        dom, events, ids, immutable data, diff, format, logger, preferences, file, PWA
+  visualisation/plots.js
+assets/icons/   app icons
+tests/          unit/, engineering/, integration/, regression/, e2e/
+scripts/        serve, build-site, check-structure
+docs/           architecture, roadmap, engineering-models, data-model, ai-models, deployment
+```
+
+## Documentation
+
+- [`PROJECT_STATE.md`](PROJECT_STATE.md) — current build, completed and pending work, known issues, next task
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`docs/architecture.md`](docs/architecture.md) — architecture, libraries, simulation/AI approach, risks, acceptance evidence
+- [`docs/engineering-models.md`](docs/engineering-models.md) — equations, assumptions, validation
+- [`docs/data-model.md`](docs/data-model.md) — project schema, storage, file formats, migrations
+- [`docs/ai-models.md`](docs/ai-models.md) — AI scope and rules
+- [`docs/deployment.md`](docs/deployment.md) — CI/CD, updates, rollback
+- [`docs/roadmap.md`](docs/roadmap.md)
+
+## Licence
+
+No licence has been chosen yet; all rights reserved by the repository owner until one is added.

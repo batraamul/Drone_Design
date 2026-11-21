@@ -1,0 +1,173 @@
+/* AEROLAB X — responsive behaviour. Desktop first; tablets and phones get drawers. */
+
+@media (max-width: 1280px) {
+  .search-btn {
+    min-width: 0;
+  }
+
+  .search-btn__text,
+  .search-btn__kbd {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .sim-status {
+    display: none;
+  }
+
+  .calc-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Small screens: the JS adds .is-mobile below 900 px -------------------------- */
+.app.is-mobile {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr) var(--bottom-current);
+  grid-template-areas:
+    'top'
+    'main'
+    'bottom';
+}
+
+.is-mobile .sidenav {
+  position: fixed;
+  top: var(--topbar-h);
+  bottom: 0;
+  left: 0;
+  width: min(300px, 86vw);
+  z-index: 50;
+  transform: translateX(-102%);
+  transition: transform var(--t-med) var(--ease);
+  box-shadow: var(--shadow-2);
+}
+
+.is-mobile.nav-open .sidenav {
+  transform: none;
+}
+
+.is-mobile .sidenav__collapse {
+  display: none;
+}
+
+.is-mobile .inspector {
+  position: fixed;
+  top: var(--topbar-h);
+  right: 0;
+  bottom: 0;
+  width: min(400px, 92vw);
+  z-index: 50;
+  visibility: hidden;
+  transform: translateX(102%);
+  transition: transform var(--t-med) var(--ease), visibility 0s linear var(--t-med);
+  box-shadow: var(--shadow-2);
+}
+
+.is-mobile.inspector-open .inspector {
+  visibility: visible;
+  transform: none;
+  transition: transform var(--t-med) var(--ease);
+}
+
+.is-mobile .sidenav-backdrop:not([hidden]) {
+  display: block;
+  position: fixed;
+  inset: var(--topbar-h) 0 0 0;
+  z-index: 45;
+  background: var(--backdrop);
+}
+
+.is-mobile .resizer {
+  display: none;
+}
+
+.is-mobile .workspace {
+  padding: 16px 14px 28px;
+}
+
+.is-mobile .topbar {
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.is-mobile .topbar__project {
+  padding-left: 6px;
+  margin-left: 0;
+}
+
+.is-mobile .brand__text,
+.is-mobile .project-switcher__label {
+  display: none;
+}
+
+.is-mobile .project-switcher {
+  max-width: 38vw;
+}
+
+@media (max-width: 640px) {
+  .topbar .save-state__text {
+    display: none;
+  }
+
+  .topbar .save-state {
+    padding: 0 8px;
+  }
+
+  #theme-btn,
+  #settings-link {
+    display: none;
+  }
+
+  .page-header__title {
+    font-size: 19px;
+  }
+
+  .notes-layout,
+  .version-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .glossary__entry {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .lesson-card {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .lesson-card > .btn {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .console__entry {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .console__level,
+  .console__category {
+    display: none;
+  }
+
+  .toasts {
+    right: 8px;
+    left: 8px;
+    align-items: stretch;
+  }
+
+  .toast {
+    width: auto;
+  }
+
+  .review-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (hover: none) {
+  .resizer {
+    display: none;
+  }
+}

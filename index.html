@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en-GB" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://batraamul.github.io; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>AEROLAB X — Drone Design, Intelligence &amp; Simulation Studio</title>
+    <meta
+      name="description"
+      content="AEROLAB X is a local-first engineering workstation for designing, analysing and documenting civilian UAVs and micro aerial vehicles."
+    />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/engineering.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <script src="js/theme-boot.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to workspace</a>
+    <div class="app" id="app" aria-busy="true">
+      <header class="topbar" id="topbar">
+        <button class="icon-btn topbar__menu" type="button" id="nav-toggle" aria-label="Toggle navigation" aria-controls="sidenav" aria-expanded="true"></button>
+        <a class="brand" href="#/dashboard" aria-label="AEROLAB X dashboard">
+          <span class="brand__mark" id="brand-mark"></span>
+          <span class="brand__text">
+            <span class="brand__name">AEROLAB X</span>
+            <span class="brand__build" id="brand-build"></span>
+          </span>
+        </a>
+        <div class="topbar__project">
+          <button class="project-switcher" type="button" id="project-switcher" aria-haspopup="dialog">
+            <span class="project-switcher__label">Project</span>
+            <span class="project-switcher__name" id="project-name">No project open</span>
+          </button>
+          <button class="save-state" type="button" id="save-state" data-status="no-project" aria-live="polite">
+            <span class="save-state__dot" aria-hidden="true"></span>
+            <span class="save-state__text" id="save-state-text">No project</span>
+          </button>
+        </div>
+        <div class="topbar__actions">
+          <button class="icon-btn" type="button" id="undo-btn" aria-label="Undo" disabled></button>
+          <button class="icon-btn" type="button" id="redo-btn" aria-label="Redo" disabled></button>
+          <span class="sim-status" id="sim-status" title="The flight simulator arrives in Build 6. No simulation can run yet.">
+            <span class="sim-status__dot" aria-hidden="true"></span>
+            <span class="sim-status__text">No simulation</span>
+          </span>
+          <button class="search-btn" type="button" id="search-btn" aria-keyshortcuts="Control+K" aria-label="Search modules, projects and commands">
+            <span class="search-btn__icon" id="search-icon"></span>
+            <span class="search-btn__text">Search</span>
+            <kbd class="search-btn__kbd">Ctrl K</kbd>
+          </button>
+          <span class="popover-anchor">
+            <button class="icon-btn" type="button" id="notifications-btn" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notifications-popover">
+              <span class="icon-slot" id="bell-icon"></span>
+              <span class="count-badge" id="notifications-count" hidden>0</span>
+            </button>
+            <div class="popover" id="notifications-popover" role="region" aria-label="Notifications" hidden></div>
+          </span>
+          <button class="icon-btn" type="button" id="theme-btn" aria-label="Switch theme"></button>
+          <button class="icon-btn" type="button" id="inspector-toggle" aria-label="Toggle inspector" aria-controls="inspector" aria-expanded="true"></button>
+          <a class="icon-btn" href="#/settings" id="settings-link" aria-label="Settings"></a>
+        </div>
+      </header>
+
+      <nav class="sidenav" id="sidenav" aria-label="Modules">
+        <div class="sidenav__scroll" id="sidenav-list"></div>
+        <button class="sidenav__collapse" type="button" id="nav-collapse" aria-label="Collapse navigation"></button>
+      </nav>
+      <div class="sidenav-backdrop" id="sidenav-backdrop" hidden></div>
+
+      <main class="workspace" id="workspace" tabindex="-1">
+        <div class="boot" id="boot">
+          <div class="boot__spinner" aria-hidden="true"></div>
+          <p>Loading AEROLAB X…</p>
+          <noscript>
+            <p class="boot__error">AEROLAB X needs JavaScript. Enable JavaScript and reload the page.</p>
+          </noscript>
+        </div>
+      </main>
+
+      <div class="resizer resizer--vertical" id="inspector-resizer" role="separator" aria-orientation="vertical" aria-label="Resize inspector" aria-controls="inspector" tabindex="0"></div>
+      <aside class="inspector" id="inspector" aria-label="Inspector">
+        <div class="inspector__scroll" id="inspector-content"></div>
+      </aside>
+
+      <div class="resizer resizer--horizontal" id="bottom-resizer" role="separator" aria-orientation="horizontal" aria-label="Resize console" aria-controls="bottom-panel" tabindex="0"></div>
+      <section class="bottom-panel" id="bottom-panel" aria-label="Engineering console">
+        <div class="bottom-panel__bar">
+          <div class="tabs" role="tablist" id="bottom-tabs" aria-label="Console views"></div>
+          <div class="bottom-panel__tools" id="bottom-tools"></div>
+        </div>
+        <div class="bottom-panel__content" id="bottom-content"></div>
+      </section>
+    </div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+  </body>
+</html>

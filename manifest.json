@@ -1,0 +1,22 @@
+{
+  "name": "AEROLAB X — Drone Design, Intelligence & Simulation Studio",
+  "short_name": "AEROLAB X",
+  "description": "Local-first engineering workstation for designing, analysing and documenting civilian UAVs and micro aerial vehicles.",
+  "id": "./",
+  "start_url": "./#/dashboard",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#0a101c",
+  "theme_color": "#0b1220",
+  "categories": ["education", "productivity", "utilities"],
+  "lang": "en-GB",
+  "dir": "ltr",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

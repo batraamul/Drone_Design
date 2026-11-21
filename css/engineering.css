@@ -1,0 +1,598 @@
+/* AEROLAB X — engineering displays: provenance, checks, derived values, requirement forms,
+   notes, versions, lessons, calculators and charts. */
+
+/* ---- Provenance and severity -------------------------------------------------- */
+.provenance {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: help;
+}
+
+.provenance--neutral {
+  color: var(--text-2);
+}
+
+.provenance--caution {
+  color: var(--warn);
+}
+
+.provenance--info {
+  color: var(--info);
+}
+
+.provenance--good {
+  color: var(--ok);
+}
+
+.severity {
+  display: inline-flex;
+  flex: none;
+}
+
+.severity--error {
+  color: var(--danger);
+}
+
+.severity--warning {
+  color: var(--warn);
+}
+
+.severity--info {
+  color: var(--info);
+}
+
+/* ---- Engineering checks ------------------------------------------------------------ */
+.check-list {
+  display: grid;
+  gap: 8px;
+}
+
+.check {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--info);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+
+.check--error {
+  border-left-color: var(--danger);
+}
+
+.check--warning {
+  border-left-color: var(--warn);
+}
+
+.check__summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 10px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.check__summary::-webkit-details-marker {
+  display: none;
+}
+
+.check__summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  margin: 6px 2px 0 auto;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
+  transform: rotate(45deg);
+  transition: transform var(--t-fast);
+  flex: none;
+}
+
+.check[open] > .check__summary::after {
+  transform: rotate(-135deg);
+}
+
+.check__title {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+.check__details {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px 36px;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.check__label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.check__equation code {
+  display: inline-block;
+}
+
+.check__inputs,
+.check__assumptions {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.check__provenance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.check__id {
+  margin-left: auto;
+}
+
+/* ---- Derived values ------------------------------------------------------------------- */
+.derived-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.derived {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+
+.derived__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.derived__label {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.derived__value {
+  font-size: 14px;
+  color: var(--text-1);
+}
+
+.derived__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+}
+
+.derived__note {
+  margin: 6px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+/* ---- Requirements form ------------------------------------------------------------- */
+.requirement-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 0 16px;
+}
+
+.requirement {
+  position: relative;
+}
+
+.requirement__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.requirement-results {
+  display: grid;
+  gap: 10px;
+}
+
+/* ---- Notes ---------------------------------------------------------------------------- */
+.notes-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  min-height: 360px;
+}
+
+.note-list {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.note-list__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  text-align: left;
+}
+
+.note-list__item:hover {
+  background: var(--bg-4);
+}
+
+.note-list__item--active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.note-list__title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+
+.note-list__meta {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.textarea--note {
+  min-height: 260px;
+  font-family: var(--font-sans);
+}
+
+/* ---- Versions -------------------------------------------------------------------------- */
+.version-form {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(200px, 2fr) auto;
+  align-items: end;
+  gap: 0 12px;
+  margin-bottom: 12px;
+}
+
+.version-form .btn {
+  margin-bottom: 14px;
+}
+
+.comparison {
+  margin-top: 4px;
+}
+
+.diff-before {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.diff-after {
+  color: var(--ok);
+  overflow-wrap: anywhere;
+}
+
+/* ---- Lessons ------------------------------------------------------------------------- */
+.lesson {
+  max-width: 980px;
+}
+
+.lesson__section {
+  margin-bottom: var(--gap);
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-3);
+}
+
+.lesson__section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.lesson__section > h2 .icon {
+  color: var(--accent-text);
+}
+
+.lesson__section p,
+.lesson__section li {
+  max-width: 80ch;
+  color: var(--text-2);
+}
+
+.equation-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-left: 1.4em;
+}
+
+.equation-list li::marker {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.equation {
+  display: inline-block;
+  padding: 6px 10px;
+  font-size: 13.5px;
+  color: var(--text-1);
+}
+
+.equation-list__note {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.steps {
+  display: grid;
+  gap: 6px;
+}
+
+.steps li::marker {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.references li {
+  font-size: var(--fs-sm);
+}
+
+.lesson__next {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 980px;
+}
+
+.glossary {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+}
+
+.glossary__entry {
+  display: grid;
+  grid-template-columns: minmax(160px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+
+.glossary dt {
+  font-weight: 600;
+}
+
+.glossary dd {
+  margin: 0;
+  color: var(--text-2);
+}
+
+/* ---- Knowledge check -------------------------------------------------------------- */
+.quiz {
+  display: grid;
+  gap: 14px;
+}
+
+.quiz__question {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+
+.quiz__question legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.quiz__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.quiz__option:hover {
+  background: var(--bg-4);
+}
+
+.quiz__option input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.quiz__feedback {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+}
+
+.quiz__feedback--correct {
+  background: var(--ok-soft);
+  color: var(--text-1);
+}
+
+.quiz__feedback--incorrect {
+  background: var(--warn-soft);
+  color: var(--text-1);
+}
+
+.quiz__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quiz__score {
+  font-weight: 600;
+}
+
+.quiz__score--pass {
+  color: var(--ok);
+}
+
+/* ---- Calculators -------------------------------------------------------------------- */
+.calc {
+  display: grid;
+  gap: 12px;
+}
+
+.calc__heading {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.calc__inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  gap: 0 12px;
+}
+
+.calc__inputs .field {
+  margin-bottom: 4px;
+}
+
+.calc__output {
+  min-height: 40px;
+}
+
+.calc__result {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 14px;
+}
+
+.calc__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.calc__note {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.result-table {
+  max-width: 640px;
+}
+
+.result-table th {
+  width: 40%;
+}
+
+/* ---- Charts ------------------------------------------------------------------------- */
+.chart-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--gap);
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  font-family: var(--font-sans);
+}
+
+.chart__title {
+  fill: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.chart__label {
+  fill: var(--text-3);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+}
+
+.chart__axis {
+  fill: var(--text-3);
+  font-size: 11px;
+}
+
+.chart__frame {
+  fill: none;
+  stroke: var(--line-strong);
+}
+
+.chart__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.chart--secondary .chart__line {
+  stroke: var(--accent-3);
+}
+
+.chart__marker circle {
+  fill: var(--bg-1);
+  stroke: var(--warn);
+  stroke-width: 2.5;
+}
+
+.chart__marker-line {
+  stroke: var(--warn);
+  stroke-dasharray: 4 4;
+  opacity: 0.7;
+}

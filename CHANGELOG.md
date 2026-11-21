@@ -1,0 +1,28 @@
+# Changelog
+
+All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+
+## [0.1.0] — 2026-11-21 — Build 1: Foundation
+
+### Added
+
+- **Application shell**: top bar (current project, save state, undo/redo, simulation status, search, notifications, theme, inspector toggle, settings), grouped collapsible navigation for all 20 modules, resizable inspector and engineering console, mobile drawers, keyboard shortcuts, command palette (modules, projects, commands, glossary).
+- **Dark aerospace theme** (default), light and system themes, compact density, reduced motion; strict Content-Security-Policy.
+- **Dashboard** with current project, requirements, design review, recent projects, build roadmap, data safety and scope.
+- **Project manager**: create, open, rename, describe, categorise, tag, duplicate, Trash/restore, permanent delete, notes (design log), named versions, version compare and restore (with safety snapshot, undoable), project import/export, full backup and merge-only restore.
+- **IndexedDB persistence** with additive schema migrations and a migration log; document schema versioning with step-wise migrations and pre-migration snapshots.
+- **Autosave** (debounced with maximum wait; also on hide, switch and before updates), optimistic concurrency with conflict resolution, cross-tab synchronisation, persistent-storage request.
+- **State store** with immutable documents, coalesced undo/redo and a dependency-tracked derived-calculation graph.
+- **Engineering foundations**: SI unit system with explicit conversions; provenance and model-fidelity taxonomy; International Standard Atmosphere (U.S. Standard Atmosphere 1976, to 86 km) validated against tabulated values; requirement-consistency checks with equations, inputs, assumptions and provenance.
+- **Learning Centre (partial)**: three lessons (data provenance and fidelity; SI units; standard atmosphere) with calculators and knowledge checks; 41-term glossary.
+- **Honest planned-module pages** for modules scheduled in later builds.
+- **PWA**: manifest, icons, versioned offline cache, user-controlled update flow.
+- **Quality gates**: structural checks, unit/engineering/integration/regression tests (Node), browser tests (Playwright, desktop and mobile).
+- **CI/CD**: GitHub Actions workflow that tests every push and deploys `main` to GitHub Pages.
+- **Documentation**: README, PROJECT_STATE, architecture, roadmap, engineering models, data model, AI models, deployment.
+
+### Known limitations
+
+- Modules other than Dashboard, My Projects, Settings and (partly) the Learning Centre are planned for later builds and perform no calculations yet.
+- Requirement checks test only the consistency of targets, not whether a design meets them.
+- Projects are stored per browser and origin; export backups to keep copies elsewhere.
