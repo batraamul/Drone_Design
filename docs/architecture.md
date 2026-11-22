@@ -76,7 +76,7 @@ flowchart TB
 | Plots | In-house SVG line charts (`js/visualisation/plots.js`) | Build 1 | Enough for static engineering profiles; accessible |
 | Interactive graphs | Chart.js 4 (MIT), vendored and pinned | Build 4 | Thrust/current/efficiency curves, polars, budgets |
 | High-rate telemetry plots | uPlot (MIT) *or* Chart.js decimation — chosen by benchmark | Build 6 | Simulation traces at 100–1000 samples/s |
-| 3D | Three.js (MIT), vendored ES-module build, pinned | Build 2 | Interactive aircraft model; 2D SVG fallback when WebGL is unavailable |
+| 3D | three.js 0.170.0 (MIT), vendored in `vendor/three/` (see its README), loaded on demand | Build 2 — in use | Interactive aircraft model; 2D SVG fallback when WebGL is unavailable |
 | Heavy computation | Web Workers | Build 6 | Keeps UI responsive during simulation, optimisation and AI |
 | AI inference | ONNX Runtime Web (MIT): WebAssembly and WebGPU execution providers | Build 8 | Runs exported models locally; no proprietary API |
 | Optional training service | Local Python/PyTorch service on `localhost`, documented REST API, opt-in | Build 9 | For demanding training; core app stays useful without it |
@@ -86,7 +86,7 @@ flowchart TB
 | Browser tests | Playwright (Apache-2.0), Chromium | Build 1 | Real-browser acceptance tests, offline and mobile emulation |
 | CI/CD | GitHub Actions → GitHub Pages | Build 1 | Test gate before every deployment |
 
-Vendored libraries will live in `vendor/<name>-<version>/` with their licence files, be precached by the service worker, and be listed in `docs/architecture.md` with version and licence.
+Vendored libraries live in `vendor/<name>/` with their licence file and a README giving the version and any change made. They are precached by the service worker and listed in this table with version and licence.
 
 ## 5. Central data model and dependency propagation
 

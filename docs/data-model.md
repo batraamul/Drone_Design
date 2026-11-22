@@ -2,11 +2,11 @@
 
 All engineering quantities are stored in **SI units**. Every document carries a schema version so it can be migrated forward.
 
-## 1. Project document (schema version 1)
+## 1. Project document (schema version 2)
 
 | Field | Type | Description |
 |---|---|---|
-| `schemaVersion` | integer | Document schema version (currently 1) |
+| `schemaVersion` | integer | Document schema version (currently 2; 1 = Build 1) |
 | `id` | string `prj_…` | Stable project identifier |
 | `revision` | integer | Persistence revision; increments on every save; used for conflict detection |
 | `name` | string ≤ 120 | Project name |
@@ -17,10 +17,20 @@ All engineering quantities are stored in **SI units**. Every document carries a 
 | `tags` | string[] ≤ 20 | Free tags (each ≤ 40 characters) |
 | `requirements` | object | Targets, see below |
 | `notes` | Note[] ≤ 500 | Design log |
-| `modules` | object | Reserved for module data added by later builds (configuration, geometry, components, …) |
+| `modules` | object | Module data. `modules.configuration` (schema 2, required): see below. Unknown module keys are preserved |
 | `createdAt`, `updatedAt` | ISO 8601 | Timestamps |
 | `deletedAt` | ISO 8601 or null | Set when the project is in the Trash |
 | `appVersion` | string | Application version that last wrote the document |
+
+### Configuration (`modules.configuration`, schema 2)
+
+`{ layout: string, options: { propulsion?: 'tractor' | 'pusher' }, params: { <key>: number (SI) } }`
+
+- `layout` is one of the 24 ids in `LAYOUTS` (`js/engineering/configuration.js`); each belongs to a category.
+- `params` holds exactly the parameters that `paramsFor(layout)` lists, each within its range: lengths in m, angles in rad, ratios dimensionless.
+- Validation also requires the wing leading edge to lie within the fuselage length.
+- A layout from another category is tolerated, for example after a Drive merge of a category change; the Architecture page then asks for a layout.
+- Import and migration repair invalid values to the layout defaults, with warnings.
 
 ### Requirement entry
 

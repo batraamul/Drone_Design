@@ -56,7 +56,8 @@ test('sanitisation repairs imported data and reports what changed', () => {
   assert.equal(doc.requirements.endurance.value, 600);
   assert.equal(doc.requirements.range.value, null);
   assert.equal(doc.notes.length, 1);
-  assert.deepEqual(doc.modules, { future: { x: 1 } });
+  assert.deepEqual(doc.modules.future, { x: 1 }, 'unknown module data is kept');
+  assert.equal(doc.modules.configuration.layout, 'quad-x', 'missing configuration gets the default for the category');
   assert.ok(!('extraneous' in doc));
   assert.ok(warnings.some((w) => w.includes('spaceship')));
   assert.ok(warnings.some((w) => w.includes('km')));
@@ -67,7 +68,7 @@ test('document migrations run step by step and refuse newer schemas', () => {
     1: (doc) => ({ ...doc, renamed: doc.name }),
     2: (doc) => ({ ...doc, notes: [...doc.notes, { id: 'note_migrated', title: 'm', body: '' }] }),
   };
-  const v1 = createProject({ name: 'Old' });
+  const v1 = { ...createProject({ name: 'Old' }), schemaVersion: 1 };
   const result = migrateProject(v1, { migrations, targetVersion: 3 });
   assert.equal(result.doc.schemaVersion, 3);
   assert.equal(result.doc.renamed, 'Old');
@@ -77,5 +78,30 @@ test('document migrations run step by step and refuse newer schemas', () => {
   assert.throws(() => migrateProject({ ...v1, schemaVersion: 99 }), ProjectFormatError);
   assert.throws(() => migrateProject({ name: 'no version' }), ProjectFormatError);
   assert.throws(() => migrateProject(v1, { migrations: {}, targetVersion: 2 }), /No migration/);
-  assert.equal(migrateProject(v1).migrated, false);
+  assert.equal(migrateProject(createProject({ name: 'Current' })).migrated, false);
+});
+
+test('schema 1 → 2 adds the aircraft configuration and keeps all user content', () => {
+  const v2 = createProject({ name: 'Mapper', category: 'fixed-wing', requirements: { endurance: 3600 } });
+  v2.notes.push({ id: 'note_keepme1', title: 'Keep', body: 'me', createdAt: v2.createdAt, updatedAt: v2.createdAt });
+  const { configuration, ...modulesWithoutConfig } = v2.modules;
+  const v1 = { ...v2, schemaVersion: 1, modules: { ...modulesWithoutConfig, legacy: { a: 1 } } };
+  const result = migrateProject(v1);
+  assert.equal(result.migrated, true);
+  assert.deepEqual(result.steps, ['1→2']);
+  assert.equal(result.doc.schemaVersion, PROJECT_SCHEMA_VERSION);
+  assert.equal(result.doc.modules.configuration.layout, 'conventional');
+  assert.deepEqual(result.doc.modules.legacy, { a: 1 });
+  assert.equal(result.doc.notes[0].title, 'Keep');
+  assert.equal(result.doc.requirements.endurance.value, 3600);
+  assert.deepEqual(validateProject(result.doc), []);
+  assert.ok(configuration, 'new projects carry a configuration');
+});
+
+test('validation reports a broken configuration', () => {
+  const doc = createProject({ name: 'X' });
+  const broken = { ...doc, modules: { configuration: { layout: 'quad-x', options: {}, params: { ...doc.modules.configuration.params, armLength: -1 } } } };
+  assert.ok(validateProject(broken).some((e) => e.path === 'modules.configuration.params.armLength'));
+  const unknown = { ...doc, modules: { configuration: { layout: 'warp-drive', options: {}, params: {} } } };
+  assert.ok(validateProject(unknown).some((e) => e.path === 'modules.configuration.layout'));
 });

@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, '_site');
-const ENTRIES = ['index.html', 'manifest.json', 'service-worker.js', 'version.json', 'css', 'js', 'assets'];
+const ENTRIES = ['index.html', 'manifest.json', 'service-worker.js', 'version.json', 'css', 'js', 'assets', 'vendor'];
 const OPTIONAL = ['data'];
 
 function commitId() {

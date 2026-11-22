@@ -596,3 +596,205 @@
   stroke-dasharray: 4 4;
   opacity: 0.7;
 }
+
+/* ---- Drone Architecture (Build 2) ----------------------------------------------------- */
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.choice-grid--wide {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  margin: 0;
+}
+
+.choice--plain {
+  grid-template-columns: 1fr;
+}
+
+.choice__tag {
+  color: var(--warn);
+  font-size: var(--fs-xs);
+}
+
+.views2d {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 12px;
+}
+
+.view2d-figure {
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+
+.view2d-figure figcaption {
+  margin-top: 4px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+
+.view2d {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.view2d text {
+  fill: var(--text-2);
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+}
+
+.view2d__body {
+  fill: var(--bg-4);
+  stroke: var(--text-2);
+  stroke-width: 1.2;
+}
+
+.view2d__arm {
+  stroke: var(--text-2);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.view2d__surface {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.view2d__surface--thin {
+  fill: none;
+}
+
+.view2d__surface-edge {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.view2d__rotor circle:first-child,
+line.view2d__rotor {
+  fill: var(--info-soft);
+  stroke: var(--info);
+  stroke-width: 1.2;
+}
+
+line.view2d__rotor {
+  stroke-width: 2;
+}
+
+.view2d__rotor--lower circle:first-child,
+line.view2d__rotor--lower {
+  stroke-dasharray: 4 3;
+}
+
+.view2d__rotor--cruise circle:first-child,
+line.view2d__rotor--cruise {
+  stroke: var(--ok);
+  fill: var(--ok-soft);
+}
+
+.view2d__hub {
+  fill: var(--info);
+}
+
+.view2d__spin {
+  fill: none;
+  stroke: var(--warn);
+  stroke-width: 1.4;
+}
+
+.view2d text.view2d__rotor-label {
+  fill: var(--text-1);
+  font-size: 9px;
+  text-anchor: middle;
+}
+
+.view2d__mac {
+  stroke: var(--warn);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+
+.view2d__ac circle {
+  fill: var(--warn);
+}
+
+.view2d__nose path {
+  fill: var(--text-3);
+}
+
+.view2d__scale line {
+  stroke: var(--text-3);
+  stroke-width: 1;
+}
+
+/* ---- 3D Design Studio ---------------------------------------------------------------- */
+.view3d {
+  position: relative;
+  height: clamp(300px, 52vh, 560px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: radial-gradient(ellipse at 50% 35%, var(--bg-3), var(--bg-1));
+  overflow: hidden;
+}
+
+.view3d--fallback {
+  height: auto;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.view3d__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.view3d__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.view3d__legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.swatch--surface { background: var(--accent); }
+.swatch--rotor { background: var(--info); }
+.swatch--cruise { background: var(--ok); }
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chart-row > :only-child {
+  max-width: 560px;
+}

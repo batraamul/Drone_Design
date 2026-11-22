@@ -3,6 +3,7 @@
  * (overview, requirements, notes, versions with compare/restore).
  */
 import { h, debounce } from '../utils/dom.js';
+import { defaultLayout, layoutInfo, switchLayout } from '../engineering/configuration.js';
 import { icon } from '../ui/icons.js';
 import {
   badge,
@@ -77,7 +78,7 @@ export async function newProjectDialog(ctx) {
       field({ id: nameId, label: 'Project name', control: name }),
       categoryChoices('np-category', 'multirotor'),
       h('div', { class: 'form-row' }, field({ id: appId, label: 'Civilian application', control: application }), field({ id: descId, label: 'Description (optional)', control: description, wide: true })),
-      h('p', { class: 'notice notice--info' }, icon('info', { size: 16 }), 'Detailed configuration (layout, geometry and components) arrives in Build 2. Design requirements can be set right after creating the project.'),
+      h('p', { class: 'notice notice--info' }, icon('info', { size: 16 }), 'After creating the project, choose its layout and dimensions in Drone Architecture and set its design requirements.'),
     ],
     actions: [
       { label: 'Cancel', value: 'cancel' },
@@ -266,7 +267,7 @@ function overviewTab(ctx) {
   tagsInput.addEventListener('input', debounce(() => store.set('tags', normaliseTags(tagsInput.value.split(',')), { label: 'Edit tags' }), 300));
   const categories = categoryChoices('ov-category', doc.category);
   categories.addEventListener('change', (event) => {
-    if (event.target instanceof HTMLInputElement && event.target.name === 'ov-category') store.set('category', event.target.value, { label: 'Change category' });
+    if (event.target instanceof HTMLInputElement && event.target.name === 'ov-category') changeCategory(store, event.target.value);
   });
   const info = h('div');
   const renderInfo = () =>
@@ -310,6 +311,15 @@ function overviewTab(ctx) {
     if (!record || force) renderInfo();
   };
   return { element, sync };
+}
+
+/** Change category and, when the current layout belongs to another category, switch to that category's first layout (one undo step). */
+export function changeCategory(store, category) {
+  const current = store.doc.modules?.configuration;
+  store.transact('Change category', (set) => {
+    set('category', category);
+    if (layoutInfo(current?.layout)?.category !== category) set(['modules', 'configuration'], switchLayout(current, defaultLayout(category)));
+  });
 }
 
 function requirementsTab(ctx) {

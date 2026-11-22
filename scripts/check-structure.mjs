@@ -194,7 +194,7 @@ export async function runChecks(root = ROOT) {
   const appSource = await readFile(join(root, 'js', 'app.js'), 'utf8');
   const viewsBlock = appSource.match(/const VIEWS = \{([^}]*)\}/)?.[1] ?? '';
   for (const module of MODULES) {
-    if (module.status !== 'planned' && !new RegExp(`\\b${module.id}\\s*:`).test(viewsBlock)) registryProblems.push(`module "${module.id}" is ${module.status} but has no view in app.js`);
+    if (module.status !== 'planned' && !new RegExp(`(^|[\\s,{'"])${module.id.replace(/[-]/g, '\\-')}['"]?\\s*:`).test(viewsBlock)) registryProblems.push(`module "${module.id}" is ${module.status} but has no view in app.js`);
     if (module.status === 'planned' && !module.scope?.length) registryProblems.push(`planned module "${module.id}" has no scope description`);
   }
   check('module registry', registryProblems);

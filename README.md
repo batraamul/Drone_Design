@@ -6,12 +6,20 @@
 
 Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
-## What Build 1 gives you
+## What it does (Builds 1–2)
 
 - **Projects** — create, duplicate, tag, describe, version, compare, restore, Trash, import/export and full backups; autosave with protection against two tabs overwriting each other; undo/redo.
 - **Design requirements** — MTOW, payload, endurance, range, cruise airspeed, operating altitude and maximum wind, stored in SI units with display units of your choice, with live consistency checks (each shows its equation, inputs, assumptions and provenance).
 - **Standard atmosphere** — ISA (U.S. Standard Atmosphere 1976) to 86 km, validated against the published tables; air properties at the operating altitude.
-- **Learning Centre** — lessons on data provenance and model fidelity, SI units, and the standard atmosphere, with calculators and knowledge checks; searchable glossary.
+- **Drone Architecture** (Build 2) — pick one of 24 layouts:
+  - quad, hexa, octo, coaxial and H multirotors;
+  - conventional, V-tail, flying-wing, delta and glider fixed wings;
+  - quadplane, tilt-rotor and tailsitter VTOL;
+  - special and micro layouts.
+
+  Set its dimensions in any unit. Scale top, front and side drawings and a geometry review update as you type: propeller clearance, disc loading, ideal hover power, wing area, aspect ratio, MAC and tail volume coefficients, each with its equation.
+- **3D Design Studio** (Build 2) — rotate, pan and zoom a 3D conceptual model built from the same numbers, with standard views. The 2D drawings are shown if WebGL is unavailable.
+- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, and wing planform and tail sizing, with calculators and knowledge checks; searchable glossary.
 - **Workstation** — dark/light themes, command palette (`Ctrl/⌘ + K`), resizable inspector and engineering console (log, problems, calculation register), offline use and installable PWA.
 
 ## Install it
@@ -83,11 +91,12 @@ index.html, manifest.json, service-worker.js, version.json
 css/            main, dashboard, engineering, responsive
 js/
   app.js, router.js, database.js, project-manager.js, project-schema.js, state-manager.js, version.js
-  engineering/  units, provenance, atmosphere, requirements   (pure, tested models)
-  modules/      dashboard, projects, settings, planned-module, module-registry, learning/
+  engineering/  units, provenance, atmosphere, requirements, configuration, geometry   (pure, tested models)
+  modules/      dashboard, projects, architecture, design-studio, settings, planned-module, module-registry, learning/
   ui/           shell, inspector, bottom panel, command palette, dialogs, notifications, components, icons
   utils/        dom, events, ids, immutable data, diff, format, logger, preferences, file, PWA
-  visualisation/plots.js
+  visualisation/ plots, views2d (scale drawings), view3d (three.js model)
+vendor/three/   three.js 0.170.0 (MIT), see its README
 assets/icons/   app icons
 tests/          unit/, engineering/, integration/, regression/, e2e/
 scripts/        serve, build-site, check-structure

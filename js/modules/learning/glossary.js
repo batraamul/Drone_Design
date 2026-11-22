@@ -3,6 +3,13 @@
  * each entry names the SI unit where one applies. Entries grow with every build.
  */
 export const GLOSSARY = Object.freeze([
+  { term: 'Disc loading', definition: 'Rotor thrust divided by total rotor disc area, in pascals (N/m²). Lower disc loading means less induced power in hover.', aliases: ['DL'] },
+  { term: 'Figure of merit', definition: 'Ratio of ideal (momentum-theory) hover power to actual rotor shaft power (dimensionless, below 1). Typically about 0.5–0.75 for small propellers.', aliases: ['FM', 'hover efficiency'] },
+  { term: 'Mean aerodynamic chord (MAC)', definition: 'The chord of an equivalent rectangular wing with the same lift and pitching moment, used as the reference length for stability and CG position. Symbol c̄, in metres.', aliases: ['MAC', 'c-bar'] },
+  { term: 'Momentum theory', definition: 'Model of a rotor as an ideal actuator disc that accelerates air. Gives the minimum (ideal) power needed for a given thrust and disc area.', aliases: ['actuator disc theory'] },
+  { term: 'Taper ratio', definition: 'Tip chord divided by root chord, λ = c_t / c_r (dimensionless). 1 is a rectangular wing; small values give a pointed tip.', aliases: ['λ'] },
+  { term: 'Tail volume coefficient', definition: 'Tail area times tail arm, divided by wing area times a wing reference length (MAC for pitch, span for yaw). A conceptual-design measure of tail effectiveness.', aliases: ['V_H', 'V_V', 'tail volume'] },
+  { term: 'Wheelbase (multirotor)', definition: 'Largest distance between two rotor axes, usually the motor-to-motor diagonal. Often used as the frame size, in millimetres.', aliases: ['frame size', 'diagonal'] },
   { term: 'AGL (above ground level)', definition: 'Height measured from the terrain directly below the aircraft. Contrast with AMSL.', aliases: ['height above ground'] },
   { term: 'AMSL (above mean sea level)', definition: 'Altitude measured from mean sea level. Standard-atmosphere tables use altitude above sea level.', aliases: ['altitude'] },
   { term: 'Analytical calculation', definition: 'A result from closed-form equations and stated assumptions, without numerical simulation. Its accuracy is limited by the model and its inputs.', aliases: ['closed-form'] },
@@ -44,4 +51,4 @@ export const GLOSSARY = Object.freeze([
   { term: 'Validation', definition: 'Determining how accurately a model represents the real world for its intended use (are we solving the right equations?).', aliases: [] },
   { term: 'Verification', definition: 'Determining that a model or code solves its equations correctly (are we solving the equations right?).', aliases: [] },
   { term: 'Wing loading', definition: 'Aircraft weight (or mass) divided by wing area, in N/m² (or kg/m²). It strongly affects stall speed and gust response.', aliases: [] },
-]);
+].sort((a, b) => a.term.localeCompare(b.term, 'en')));

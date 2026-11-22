@@ -2,6 +2,25 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-11-22 — Build 2: Configuration and 3D design
+
+### Added
+
+- **Drone Architecture** (partial, Build 2 scope done). Choose the aircraft category and one of 24 layouts:
+  - multirotor X, +, H, Y, hexa, octo and coaxial Y6/X8;
+  - fixed-wing conventional, V-tail, flying wing, delta and glider;
+  - VTOL quadplane, tilt-rotor and tailsitter;
+  - special and micro layouts.
+
+  Set the key dimensions in any unit. Top, front and side scale drawings redraw as you type. A geometry review shows every derived value with its equation, inputs and provenance.
+- **Geometry model** (`js/engineering/geometry.js`), each value documented and tested:
+  - rotor positions and spin directions, wheelbase, propeller tip clearance, disc area, disc loading, and ideal hover induced velocity and power (momentum theory, ISA density at the operating-altitude target);
+  - wing area, aspect ratio, mean aerodynamic chord and its position, quarter-chord sweep and aerodynamic centre;
+  - tail areas and tail volume coefficients (conventional and V-tail), wing loading and fuselage fineness.
+- **Geometry checks** in the design review, the inspector and the Problems panel: overlapping or crowded propellers, propellers over the body or fuselage, small tails, and a tail overlapping the wing.
+- **3D Design Studio** (partial). An interactive 3D conceptual model built from the same geometry: rotate, pan, zoom, and perspective, top, front and side views. The dimension form sits beside the model. The 2D drawings are shown when WebGL is unavailable. three.js 0.170.0 is vendored with its MIT licence (`vendor/three`) and loaded only on this page.
+- Project schema **v2**: `modules.configuration` with a 1→2 migration that keeps all content. Imports, Drive-merged copies and old versions are migrated and repaired with warnings. Changing the category switches to a layout of that category in one undo step.
+
 ## [0.2.2] — 2026-11-22 — E-Diary and AEROLAB X fully separate on the Mac
 
 ### Fixed

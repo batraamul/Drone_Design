@@ -20,6 +20,8 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}/Drone_Design/`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // Software WebGL so the 3D Design Studio renders on CI machines without a GPU.
+    launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
   },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, testIgnore: /mobile\.spec\.mjs/ },

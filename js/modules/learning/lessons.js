@@ -9,6 +9,7 @@
  */
 import { isa, G0, R_AIR, GAMMA, T0, P0, RHO0, SUTHERLAND_BETA, SUTHERLAND_S, EARTH_RADIUS } from '../../engineering/atmosphere.js';
 import { formatNumber } from '../../utils/format.js';
+import { wingPlanform } from '../../engineering/geometry.js';
 
 const n = (value, digits = 4) => formatNumber(value, { digits });
 
@@ -250,11 +251,192 @@ export const LESSONS = Object.freeze([
       'ICAO Doc 7488/3 — Manual of the ICAO Standard Atmosphere (extended to 80 km), 3rd edition, 1993.',
     ],
   },
+  {
+    id: 'rotor-layout-hover',
+    title: 'Multirotor layout, disc loading and ideal hover power',
+    icon: 'multirotor',
+    level: 'Configuration',
+    minutes: 15,
+    summary: 'How rotor count and arrangement set the frame size, why propeller tips need clearance, and what momentum theory says about hover power.',
+    beginner: [
+      'A multirotor hovers by pushing air down. Each propeller sweeps a circle, its disc. Together the discs must push down a mass of air every second whose momentum change equals the aircraft weight.',
+      'Pushing a lot of air slowly costs less power than pushing a little air fast. That is why large, slow propellers are efficient in hover, and why the frame must be big enough to fit them without the tips touching.',
+    ],
+    theory: [
+      'Rotors sit on a circle of radius R around the centre (X, + and the hexa and octo layouts), or at the corners of a rectangle (H). On a regular n-rotor ring, neighbouring rotor axes are s = 2R sin(π/n) apart. The propeller tips clear each other only if s exceeds the diameter D. A margin of about 10 % of D is a common rule of thumb against aerodynamic interference and arm flex.',
+      'Neighbouring rotors spin in opposite directions so that their reaction torques cancel in hover. Yaw is controlled by speeding up one set and slowing the other. A tricopter has an odd number of rotors, so it needs a tilting motor for yaw.',
+      'Momentum (actuator-disc) theory treats the rotors as ideal discs of total area A. In hover the thrust T = W produces an induced velocity v_h = √(T / (2ρA)) and needs at least the ideal power P = T·v_h. Real rotors need more power: blade profile drag, tip losses and swirl give a figure of merit below 1, typically about 0.5–0.75 for small propellers. Propulsion models in Build 4 add these losses.',
+      'Disc loading DL = T/A is the key number: P_ideal = T·√(DL/(2ρ)). Doubling the disc area at constant weight lowers ideal hover power by a factor √2. Thinner air (high altitude) raises it as 1/√ρ.',
+      'Coaxial pairs (Y6, X8) put two rotors on one axis. They add thrust and redundancy in a compact frame, but the lower rotor works in the upper rotor’s wake. AEROLAB X therefore counts the pair’s disc area once.',
+    ],
+    equations: [
+      { expression: 's = 2 R sin(π / n)', note: 'Spacing of neighbouring rotor axes on a regular ring of n rotors.' },
+      { expression: 'c_tip = s − D', note: 'Propeller tip clearance; must be positive.' },
+      { expression: 'A = n_axes · π D² / 4', note: 'Total (projected) disc area.' },
+      { expression: 'DL = m g₀ / A', note: 'Disc loading in hover.' },
+      { expression: 'v_h = √(DL / (2ρ)),   P_ideal = m g₀ · v_h', note: 'Ideal momentum theory (figure of merit = 1).' },
+    ],
+    variables: [
+      { symbol: 'R', meaning: 'Rotor distance from the frame centre', unit: 'm' },
+      { symbol: 'n', meaning: 'Number of rotor axes', unit: '—' },
+      { symbol: 'D', meaning: 'Propeller diameter', unit: 'm (often quoted in inches)' },
+      { symbol: 'A', meaning: 'Total disc area', unit: 'm²' },
+      { symbol: 'DL', meaning: 'Disc loading', unit: 'Pa = N/m²' },
+      { symbol: 'ρ', meaning: 'Air density', unit: 'kg/m³' },
+      { symbol: 'v_h', meaning: 'Ideal induced velocity in hover', unit: 'm/s' },
+      { symbol: 'P_ideal', meaning: 'Ideal hover power (lower bound)', unit: 'W' },
+    ],
+    example: () => {
+      const R = 0.225;
+      const D = 0.254;
+      const m = 1.5;
+      const s = 2 * R * Math.sin(Math.PI / 4);
+      const A = (4 * Math.PI * D * D) / 4;
+      const DL = (m * G0) / A;
+      const vh = Math.sqrt(DL / (2 * RHO0));
+      return {
+        title: 'A 1.5 kg quadcopter X with 10-inch propellers',
+        steps: [
+          `R = 225 mm (450 mm frame), D = 10 in = 254 mm, m = 1.5 kg, sea level ρ = ${n(RHO0, 4)} kg/m³.`,
+          `Axis spacing s = 2 × 0.225 × sin(45°) = ${n(s * 1000, 4)} mm, so the tip clearance is ${n((s - D) * 1000, 3)} mm (${n(((s - D) / D) * 100, 3)} % of D: acceptable).`,
+          `Disc area A = 4 × π × 0.254² / 4 = ${n(A, 4)} m².`,
+          `Disc loading DL = 1.5 × 9.80665 / ${n(A, 4)} = ${n(DL, 4)} Pa.`,
+          `Induced velocity v_h = √(${n(DL, 4)} / (2 × ${n(RHO0, 4)})) = ${n(vh, 4)} m/s.`,
+          `Ideal hover power = ${n(m * G0, 4)} N × ${n(vh, 4)} m/s = ${n(m * G0 * vh, 4)} W. With a figure of merit of about 0.6 the rotors would need roughly ${n((m * G0 * vh) / 0.6, 3)} W of shaft power, before motor and controller losses.`,
+        ],
+      };
+    },
+    calculator: 'hover',
+    practical: [
+      'Check propeller clearance with the actual propeller, including its tolerance and any flex of the arms under load.',
+      'Keep the propeller discs clear of the central body; blocking the downwash costs thrust.',
+      'Follow the flight controller’s documented motor numbering and spin directions exactly; mistakes flip the aircraft on take-off.',
+      'Recompute hover power at the highest and hottest place you intend to operate: lower density raises the power needed.',
+    ],
+    mistakes: [
+      'Treating ideal hover power as the battery power needed (it ignores rotor, motor and controller losses).',
+      'Counting both rotors of a coaxial pair as independent disc area.',
+      'Choosing propellers first and arms afterwards, leaving the tips overlapping.',
+      'Comparing frame sizes measured differently (motor-to-motor diagonal versus arm length).',
+    ],
+    quiz: [
+      {
+        question: 'On a hexacopter (n = 6) with rotors at R = 300 mm, what is the largest propeller diameter that still clears its neighbours?',
+        options: ['150 mm', '300 mm', '424 mm', '600 mm'],
+        answer: 1,
+        explanation: 's = 2R sin(π/6) = R = 300 mm. The diameter must stay below 300 mm, and in practice about 10 % less.',
+      },
+      {
+        question: 'At constant weight, the total disc area is doubled. Ideal hover power changes by a factor of:',
+        options: ['1/2', '1/√2', '√2', '2'],
+        answer: 1,
+        explanation: 'P_ideal = T √(T / (2ρA)) ∝ A^(−1/2), so doubling A divides the ideal power by √2.',
+      },
+      {
+        question: 'Why do neighbouring rotors on a quadcopter spin in opposite directions?',
+        options: ['To increase thrust', 'So their reaction torques cancel and yaw can be controlled', 'To reduce noise', 'Because motors only turn one way'],
+        answer: 1,
+        explanation: 'Equal and opposite torques cancel in hover. Yaw comes from changing the speed of one set against the other.',
+      },
+    ],
+    references: [
+      'J. G. Leishman, Principles of Helicopter Aerodynamics, 2nd ed., Cambridge University Press, 2006 — chapter 2 (momentum theory, figure of merit).',
+      'R. Mahony, V. Kumar, P. Corke, “Multirotor aerial vehicles: modeling, estimation, and control of quadrotor”, IEEE Robotics & Automation Magazine 19(3), 2012.',
+    ],
+  },
+  {
+    id: 'wing-planform-tail',
+    title: 'Wing planform and tail volume coefficients',
+    icon: 'fixedWing',
+    level: 'Configuration',
+    minutes: 15,
+    summary: 'Reading a wing from its span, chords and sweep: area, aspect ratio, mean aerodynamic chord, and how big the tail must be.',
+    beginner: [
+      'Seen from above, most small-UAV wings are trapezoids. Five numbers describe them: span, root chord, taper ratio (tip chord / root chord), leading-edge sweep and dihedral.',
+      'From these come the wing area, which carries the weight, and the aspect ratio, which governs induced drag. They also give the mean aerodynamic chord, the reference length used for stability and for placing the centre of gravity.',
+      'The tail keeps the aircraft pointing into the wind. What matters is not its area alone but its area times its distance from the wing, compared with the wing itself. That ratio is the tail volume coefficient.',
+    ],
+    theory: [
+      'For a straight-tapered wing with root chord c_r, taper ratio λ and span b, the reference area is S = b c_r (1 + λ) / 2 and the aspect ratio is AR = b² / S.',
+      'The mean aerodynamic chord (MAC) c̄ = (2/3) c_r (1 + λ + λ²) / (1 + λ) lies at ȳ = (b/6)(1 + 2λ)/(1 + λ) from the centreline. For subsonic flight the wing’s aerodynamic centre is close to the quarter-chord point of the MAC.',
+      'Sweep differs along the chord when the wing is tapered: tan Λ_n = tan Λ_LE − 4n(1 − λ) / (AR (1 + λ)) for the line at fraction n of the chord. Quarter-chord sweep (n = 0.25) is the one that matters aerodynamically.',
+      'Tail volume coefficients compare tail moment capacity with the wing: V_H = S_h l_t / (S c̄) for pitch and V_V = S_v l_t / (S b) for yaw. Conceptual design uses historical values as a starting point: roughly 0.4–0.7 for V_H and 0.02–0.05 for V_V on light aircraft and gliders (Raymer, table 6.4). They are not stability proofs: Build 6 analyses stability properly.',
+      'A V-tail’s two panels of total area S_V act like a horizontal tail of S_V cos²Γ and a vertical tail of S_V sin²Γ, where Γ is the panel dihedral (a first approximation).',
+    ],
+    equations: [
+      { expression: 'S = b c_r (1 + λ) / 2,   AR = b² / S', note: 'Trapezoidal wing area and aspect ratio.' },
+      { expression: 'c̄ = (2/3) c_r (1 + λ + λ²)/(1 + λ),   ȳ = (b/6)(1 + 2λ)/(1 + λ)', note: 'Mean aerodynamic chord and its spanwise position.' },
+      { expression: 'tan Λ_c/4 = tan Λ_LE − (1 − λ) / (AR (1 + λ))', note: 'Quarter-chord sweep from leading-edge sweep.' },
+      { expression: 'V_H = S_h l_t / (S c̄),   V_V = S_v l_t / (S b)', note: 'Horizontal and vertical tail volume coefficients.' },
+    ],
+    variables: [
+      { symbol: 'b', meaning: 'Wing span', unit: 'm' },
+      { symbol: 'c_r, c_t', meaning: 'Root and tip chord', unit: 'm' },
+      { symbol: 'λ', meaning: 'Taper ratio c_t / c_r', unit: '—' },
+      { symbol: 'Λ_LE', meaning: 'Leading-edge sweep', unit: 'rad (shown in degrees)' },
+      { symbol: 'S, AR', meaning: 'Wing area, aspect ratio', unit: 'm², —' },
+      { symbol: 'c̄', meaning: 'Mean aerodynamic chord', unit: 'm' },
+      { symbol: 'l_t', meaning: 'Tail arm (wing to tail aerodynamic centre)', unit: 'm' },
+      { symbol: 'S_h, S_v', meaning: 'Horizontal and vertical tail area', unit: 'm²' },
+    ],
+    example: () => {
+      const wp = wingPlanform({ span: 2, rootChord: 0.3, taperRatio: 0.6, sweepLE: 0 });
+      const VH = (0.6 * 0.16 * 0.8) / (wp.area * wp.mac);
+      const VV = (0.25 * 0.18 * 0.8) / (wp.area * 2);
+      return {
+        title: 'A 2 m survey aircraft',
+        steps: [
+          'b = 2 m, c_r = 300 mm, λ = 0.6 (c_t = 180 mm), no sweep.',
+          `S = 2 × 0.3 × 1.6 / 2 = ${n(wp.area, 4)} m²; AR = 4 / ${n(wp.area, 4)} = ${n(wp.aspectRatio, 4)}.`,
+          `c̄ = (2/3) × 0.3 × (1 + 0.6 + 0.36) / 1.6 = ${n(wp.mac * 1000, 4)} mm at ȳ = ${n(wp.yMac * 1000, 4)} mm from the centreline.`,
+          `Horizontal tail 600 × 160 mm (S_h = 0.096 m²) at l_t = 0.8 m: V_H = 0.096 × 0.8 / (${n(wp.area, 4)} × ${n(wp.mac, 4)}) = ${n(VH, 3)}, within the typical range.`,
+          `Fin 250 × 180 mm (S_v = 0.045 m²): V_V = 0.045 × 0.8 / (${n(wp.area, 4)} × 2) = ${n(VV, 3)}, within the typical range.`,
+        ],
+      };
+    },
+    calculator: 'planform',
+    practical: [
+      'Place the centre of gravity relative to the MAC, not the root chord; the MAC is the reference used in stability margins.',
+      'A longer tail arm lets a smaller tail do the same job, at the cost of a longer, heavier boom.',
+      'High aspect ratio is efficient but flexible; check wing bending and flutter for long, thin wings (Build 5).',
+      'Tail volume coefficients are a starting point. Confirm stability with the static-margin analysis.',
+    ],
+    mistakes: [
+      'Computing aspect ratio with the root chord instead of the area (only correct for rectangular wings).',
+      'Measuring the tail arm from the nose or the wing leading edge instead of between the aerodynamic centres.',
+      'Treating a typical tail volume as a guarantee of stability.',
+      'Forgetting that a V-tail panel area splits between pitch and yaw.',
+    ],
+    quiz: [
+      {
+        question: 'A rectangular wing has span 1.5 m and chord 0.25 m. Its aspect ratio is:',
+        options: ['0.375', '4', '6', '9'],
+        answer: 2,
+        explanation: 'S = 1.5 × 0.25 = 0.375 m², AR = 1.5² / 0.375 = 6 (equal to b/c for a rectangle).',
+      },
+      {
+        question: 'Doubling the tail arm while keeping the horizontal tail the same size changes V_H by a factor of:',
+        options: ['0.5', '1', '2', '4'],
+        answer: 2,
+        explanation: 'V_H = S_h l_t / (S c̄) is proportional to l_t.',
+      },
+      {
+        question: 'For a rectangular wing (λ = 1), the mean aerodynamic chord equals:',
+        options: ['Half the chord', 'The chord', 'Two thirds of the chord', 'The span divided by 6'],
+        answer: 1,
+        explanation: 'c̄ = (2/3) c_r × 3/2 = c_r.',
+      },
+    ],
+    references: [
+      'D. P. Raymer, Aircraft Design: A Conceptual Approach, 6th ed., AIAA, 2018 — chapters 4 and 6 (wing geometry, tail sizing, table 6.4).',
+      'E. Torenbeek, Synthesis of Subsonic Airplane Design, Delft University Press, 1982 — appendix on planform geometry.',
+    ],
+  },
 ]);
 
 export const LEARNING_PATHS = Object.freeze([
   { title: 'Engineering foundations', lessons: ['data-provenance', 'si-units', 'standard-atmosphere'], status: 'available' },
-  { title: 'UAV configuration fundamentals', build: 2 },
+  { title: 'UAV configuration fundamentals', lessons: ['rotor-layout-hover', 'wing-planform-tail'], status: 'available' },
   { title: 'Electronics, flight controllers and avionics', build: 3 },
   { title: 'RF links and software-defined radio', build: 3 },
   { title: 'Power electronics, motors and batteries', build: 4 },

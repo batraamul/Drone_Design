@@ -1,8 +1,8 @@
 {
   "app": "AEROLAB X",
-  "version": "0.2.2",
-  "build": 1,
-  "buildName": "Foundation",
+  "version": "0.3.0",
+  "build": 2,
+  "buildName": "Configuration and 3D design",
   "commit": "dev",
   "builtAt": null
 }

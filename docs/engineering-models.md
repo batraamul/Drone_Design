@@ -92,6 +92,93 @@ Invalid stored values (failing field validation) are ignored by the checks rathe
 
 **Validation:** `tests/engineering/requirements.test.mjs` (each check triggers exactly at its boundary; derived values match hand calculations, e.g. 20 km at 15 m/s ⇒ 1333.3 s; V_w/V_c = 0.5 ⇒ k_w = 4/3; ISA density at 200 m ≈ 1.2016 kg/m³).
 
-## 5. Planned models (not implemented)
+## 5. Conceptual geometry — `js/engineering/configuration.js`, `js/engineering/geometry.js` (Build 2)
 
-Mass and CG budgets (Build 4/5), BLDC motor and propeller models (Build 4), battery equivalent-circuit model (Build 4), wing and airfoil estimates (Build 5), beam bending/torsion and vibration (Build 5), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.
+**Configuration.** `project.modules.configuration = { layout, options, params }`. The 24 layouts each belong to one category and one geometry family:
+- `multirotor`;
+- `fixed-wing`;
+- `vtol`, which is wing geometry plus lift rotors;
+- `none`, which is recorded only and not modelled (balloon-assisted, flapping-wing).
+
+Each parameter has an SI unit, a validity range and help text. Starting values are *illustrative*. Every parameter has provenance `user-input`.
+
+**Body frame.** x forward, y right, z up (m). Multirotor origin: frame centre. Winged origin: fuselage nose, so the aircraft lies at x ≤ 0.
+
+### 5.1 Multirotor
+| Quantity | Equation | Provenance |
+|---|---|---|
+| Rotor axes, X pattern | φᵢ = π/n + 2πi/n, (x, y) = R(cos φ, sin φ) | user-input |
+| Rotor axes, + pattern | φᵢ = 2πi/n | user-input |
+| Rotor axes, Y (tri, Y6) | φ = 60°, 180°, 300° | user-input |
+| Rotor axes, H | x = ±R k/√(1+k²), y = ±R/√(1+k²), k = length/width | user-input |
+| Wheelbase | W = max ‖rᵢ − rⱼ‖ | analytical |
+| Tip clearance | c_tip = min ‖rᵢ − rⱼ‖ − D (regular ring: 2R sin(π/n) − D) | analytical |
+| Disc area | A = n_axes · πD²/4 (a coaxial pair counts once) | analytical |
+| Disc loading | DL = m_TO g₀ / A | analytical |
+| Ideal induced velocity | v_h = √(DL / 2ρ) | analytical (momentum theory) |
+| Ideal hover power | P_ideal = m_TO g₀ v_h | analytical; lower bound (figure of merit = 1) |
+
+ρ is the ISA density at the operating-altitude target, or at sea level when no target is set. Spin directions alternate around the ring; coaxial pairs counter-rotate.
+
+| Check | Condition | Severity |
+|---|---|---|
+| GEO-MR-001 | c_tip < 0 | error |
+| GEO-MR-002 | 0 ≤ c_tip < 0.1 D | warning (rule of thumb) |
+| GEO-MR-003 | R − D/2 < d_b/2 | warning (disc over the body) |
+
+### 5.2 Wing, fuselage and tail
+| Quantity | Equation |
+|---|---|
+| Tip chord | c_t = λ c_r |
+| Reference area | S = b (c_r + c_t)/2 |
+| Aspect ratio | AR = b²/S |
+| Mean aerodynamic chord | c̄ = (2/3) c_r (1+λ+λ²)/(1+λ) |
+| MAC position | ȳ = (b/6)(1+2λ)/(1+λ), x_LE,MAC = ȳ tan Λ_LE |
+| Quarter-chord sweep | tan Λ_c/4 = tan Λ_LE − (1−λ)/(AR(1+λ)) |
+| Aerodynamic centre | x_ac = x_w + ȳ tan Λ_LE + 0.25 c̄ (conceptual estimate: subsonic, thin aerofoil) |
+| Wing loading | W/S = m_TO g₀ / S |
+| Conventional tail | S_h = b_h c_h, S_v = h_v c_v |
+| V-tail | S_V = b_h c_h / cos Γ_v, S_h = S_V cos²Γ_v, S_v = S_V sin²Γ_v |
+| Tail volume coefficients | V_H = S_h l_t /(S c̄), V_V = S_v l_t /(S b) |
+
+The tail arm l_t is measured from the wing aerodynamic centre to the tail quarter-chord.
+
+| Check | Condition | Severity |
+|---|---|---|
+| GEO-TAIL-001 | V_H < 0.3 | warning |
+| GEO-TAIL-002 | V_H > 1.2 | info |
+| GEO-TAIL-003 | V_V < 0.015 | warning |
+| GEO-TAIL-004 | tail leading edge ahead of the wing root trailing edge | error |
+| GEO-FW-001 | AR < 3 (not for delta or VTOL layouts) | info |
+
+The typical tail-volume ranges are about 0.4–0.7 for V_H and 0.02–0.05 for V_V (Raymer, *Aircraft Design: A Conceptual Approach*, table 6.4). They are guidance from historical statistics, not stability limits. Stability is analysed in Build 6.
+
+### 5.3 VTOL lift systems
+| Layout | Lift rotors | Notes |
+|---|---|---|
+| Quadplane | 4 lift rotors at (x_ac ± x_L, ±y_L) on two booms, analysed as in §5.1 | GEO-LIFT-004 warns when a disc reaches over the fuselage |
+| Tilt-rotor (tri) | Two wing-tip rotors drawn in hover, plus one rear rotor drawn at 0.8 D_L | The disc area uses D_L for all three, which is an upper bound |
+| Tailsitter | 4 rotors on the leading edge at (±b/4, ±0.6 D_L) in the hover plane, axis along x | Spacing is checked in the hover plane |
+
+**Verification.** `tests/engineering/geometry.test.mjs` checks the following against hand calculations:
+- rotor positions;
+- the quad-X wheelbase, clearance, disc area, disc loading, v_h and P_ideal;
+- the trapezoidal-wing area, AR, MAC, ȳ and quarter-chord sweep, including rectangular-wing limits;
+- the tail volumes;
+- the V-tail split (cos² + sin² = 1);
+- the quadplane rotor placement.
+
+It also checks that every layout's default is valid and raises no warnings.
+
+**Limitations.** Plan-form geometry only:
+- no aerofoil thickness, twist or incidence;
+- no mass or CG estimate;
+- no aerodynamic coefficients;
+- no rotor-rotor or rotor-wing interference;
+- no structural sizing.
+
+Ideal hover power ignores every loss.
+
+## 6. Planned models (not implemented)
+
+Mass and CG budgets (Build 4/5), BLDC motor and propeller models (Build 4), battery equivalent-circuit model (Build 4), aerofoil and lift/drag estimates (Build 5), beam bending/torsion and vibration (Build 5), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.

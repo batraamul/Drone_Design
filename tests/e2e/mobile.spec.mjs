@@ -27,3 +27,21 @@ test('small screens use drawers and never scroll horizontally', async ({ page })
   }
   expect(errors).toEqual([]);
 });
+
+test('Build 2 pages fit small screens with a project open', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+  await page.locator('.view').getByRole('button', { name: 'New project' }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'New project' });
+  await dialog.getByLabel('Project name').fill('Phone');
+  await dialog.getByRole('button', { name: /Create/ }).click();
+  for (const hash of ['#/architecture', '#/design-studio', '#/learning/rotor-layout-hover', '#/learning/wing-planform-tail']) {
+    await page.goto(`./${hash}`);
+    await expect(page.locator('.view h1')).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, `horizontal overflow on ${hash}`).toBeLessThanOrEqual(0);
+  }
+  expect(errors).toEqual([]);
+});

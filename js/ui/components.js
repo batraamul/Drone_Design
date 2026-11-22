@@ -173,6 +173,7 @@ export function parseNumber(text) {
 export function preferredUnit(siUnit, prefs) {
   if (!isKnownUnit(siUnit)) return siUnit;
   const dimension = dimensionOf(siUnit);
+  if (dimension === 'angle') return 'deg';
   const map = { time: ['endurance', 'min'], length: ['range', 'km'], speed: ['cruiseSpeed', 'm/s'], mass: ['maxTakeoffMass', 'kg'] };
   if (map[dimension] && prefs) return prefs.displayUnit(...map[dimension]);
   return siUnit;
@@ -275,7 +276,7 @@ function inputsLine(inputs, prefs) {
     'ul',
     { class: 'check__inputs' },
     inputs.map((item) =>
-      h('li', null, h('span', { class: 'symbol' }, item.symbol), ' = ', h('span', { class: 'mono' }, formatQuantity(item.value, item.unit, preferredUnit(item.unit, prefs) ?? item.unit))),
+      h('li', null, h('span', { class: 'symbol' }, item.symbol), ' = ', h('span', { class: 'mono' }, formatQuantity(item.value, item.unit, item.displayUnit ?? preferredUnit(item.unit, prefs) ?? item.unit))),
     ),
   );
 }
@@ -292,7 +293,7 @@ export function checkCard(check, prefs, { compact = false } = {}) {
           h('span', { class: 'check__label' }, 'Result'),
           h('span', { class: 'symbol' }, check.result.symbol),
           ' = ',
-          h('span', { class: 'mono' }, formatQuantity(check.result.value, check.result.unit, preferredUnit(check.result.unit, prefs))),
+          h('span', { class: 'mono' }, formatQuantity(check.result.value, check.result.unit, check.result.displayUnit ?? preferredUnit(check.result.unit, prefs))),
         )
       : null,
     check.assumptions?.length
@@ -317,7 +318,7 @@ export function derivedList(derived, prefs) {
           'div',
           { class: 'derived__head' },
           h('span', { class: 'derived__label' }, item.label),
-          h('span', { class: 'derived__value mono' }, h('span', { class: 'symbol' }, item.symbol), ' = ', formatQuantity(item.value, item.unit, preferredUnit(item.unit, prefs))),
+          h('span', { class: 'derived__value mono' }, h('span', { class: 'symbol' }, item.symbol), ' = ', formatQuantity(item.value, item.unit, item.displayUnit ?? preferredUnit(item.unit, prefs))),
         ),
         h('div', { class: 'derived__meta' }, provenanceBadge(item.provenance), h('code', null, item.equation)),
         item.note ? h('p', { class: 'derived__note' }, item.note) : null,

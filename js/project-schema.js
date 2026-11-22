@@ -11,8 +11,10 @@ import { uid } from './utils/id.js';
 import { deepClone, isPlainObject } from './utils/immutable.js';
 import { APP_VERSION } from './version.js';
 import { REQUIREMENT_FIELDS, emptyRequirements, validateRequirementValue } from './engineering/requirements.js';
+import { defaultConfiguration, sanitizeConfiguration, validateConfiguration } from './engineering/configuration.js';
 
-export const PROJECT_SCHEMA_VERSION = 1;
+/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (adds modules.configuration). */
+export const PROJECT_SCHEMA_VERSION = 2;
 
 export const PROJECT_CATEGORIES = Object.freeze([
   {
@@ -133,19 +135,20 @@ export function createProject(init = {}, { now = new Date(), id } = {}) {
     }
   }
   const name = cleanText(init.name, LIMITS.nameLength).trim();
+  const category = CATEGORY_MAP.has(init.category) ? init.category : 'multirotor';
   return {
     schemaVersion: PROJECT_SCHEMA_VERSION,
     id: id ?? uid('prj'),
     revision: 0,
     name: name || 'Untitled design',
     description: cleanText(init.description, LIMITS.descriptionLength),
-    category: CATEGORY_MAP.has(init.category) ? init.category : 'multirotor',
+    category,
     application: APPLICATION_MAP.has(init.application) ? init.application : 'aerial-mapping',
     stage: STAGE_MAP.has(init.stage) ? init.stage : 'concept',
     tags: Array.isArray(init.tags) ? normaliseTags(init.tags) : [],
     requirements,
     notes: [],
-    modules: {},
+    modules: { configuration: defaultConfiguration(category) },
     createdAt: iso,
     updatedAt: iso,
     deletedAt: null,
@@ -216,7 +219,13 @@ export function validateProject(doc) {
       }
     });
   }
-  if (!isPlainObject(doc.modules)) error('modules', 'Modules must be an object');
+  if (!isPlainObject(doc.modules)) {
+    error('modules', 'Modules must be an object');
+  } else {
+    for (const item of validateConfiguration(doc.modules.configuration)) {
+      error(item.path ? `modules.configuration.${item.path}` : 'modules.configuration', item.message);
+    }
+  }
   if (!isIsoDate(doc.createdAt)) error('createdAt', 'Invalid creation date');
   if (!isIsoDate(doc.updatedAt)) error('updatedAt', 'Invalid modification date');
   if (doc.deletedAt !== null && !isIsoDate(doc.deletedAt)) error('deletedAt', 'Invalid deletion date');
@@ -282,6 +291,9 @@ export function sanitizeProject(input, { now = new Date() } = {}) {
   }
 
   base.modules = isPlainObject(source.modules) ? deepClone(source.modules) : {};
+  const config = sanitizeConfiguration(base.modules.configuration, base.category);
+  base.modules.configuration = config.configuration;
+  warnings.push(...config.warnings);
   if (isIsoDate(source.createdAt)) base.createdAt = source.createdAt;
   if (isIsoDate(source.updatedAt)) base.updatedAt = source.updatedAt;
   base.deletedAt = null;
@@ -293,7 +305,15 @@ export function sanitizeProject(input, { now = new Date() } = {}) {
  * Document migrations. MIGRATIONS[n] upgrades a document from schema n to n + 1.
  * Each step receives a deep copy and must preserve all user content.
  */
-export const MIGRATIONS = Object.freeze({});
+export const MIGRATIONS = Object.freeze({
+  /** 1 → 2: add the aircraft configuration (default layout for the project category). Nothing is removed. */
+  1: (doc) => {
+    const modules = isPlainObject(doc.modules) ? doc.modules : {};
+    const category = CATEGORY_MAP.has(doc.category) ? doc.category : 'multirotor';
+    const { configuration } = sanitizeConfiguration(modules.configuration, category);
+    return { ...doc, modules: { ...modules, configuration } };
+  },
+});
 
 export function migrateProject(doc, { migrations = MIGRATIONS, targetVersion = PROJECT_SCHEMA_VERSION } = {}) {
   if (!isPlainObject(doc)) throw new ProjectFormatError('Project must be a JSON object');

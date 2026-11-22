@@ -4,12 +4,12 @@ Single source of truth for where development stands. Read this at the start of e
 
 | Item | State |
 |---|---|
-| Current build | **Build 1 — Foundation: complete and tested locally** |
-| Application version | 0.2.2 (Build 1.1 + strict Safari window guard: AEROLAB X never runs in a Safari Dock window on batraamul.github.io) |
+| Current build | **Build 2 — Configuration and 3D design: complete** (Build 1 complete) |
+| Application version | 0.3.0 (Build 2) |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
-| Last successful test run | 2026-11-21 — `npm test`: structural checks 12/12 groups; Node tests 70/70 (Node 22 and 24); Playwright 17/17 (desktop + mobile Chromium) |
+| Last successful test run | 2026-11-22 — `npm test`: structural checks 12/12 groups; Node tests 84/84; Playwright 27/27 (desktop + mobile Chromium, software WebGL) |
 
 ## Completed (Build 1)
 
@@ -28,9 +28,23 @@ Single source of truth for where development stands. Read this at the start of e
 - Quality: structural gate, Node tests, Playwright tests; GitHub Actions CI + Pages deployment workflow.
 - Documentation: README, CHANGELOG, docs/ (architecture, roadmap, engineering models, data model, AI models, deployment).
 
+## Completed (Build 2, v0.3.0)
+
+- Configuration schema (`modules.configuration`): 24 layouts across 5 categories, typed SI parameters with ranges. Project schema v2 with the 1→2 migration, validation and import repair. A category change switches layout in one undo step.
+- Geometry model (`js/engineering/geometry.js`):
+  - rotor positions and spin directions, wheelbase, tip clearance, disc area and loading, ideal hover velocity and power;
+  - wing area, AR, MAC, quarter-chord sweep and aerodynamic centre, wing loading;
+  - tail areas and volume coefficients (conventional and V-tail);
+  - VTOL lift rotors.
+
+  Checks GEO-MR-001…003, GEO-TAIL-001…004, GEO-FW-001 and GEO-LIFT-004 feed the shared design review (store nodes `geometry` and `review`).
+- Drone Architecture page (partial: power and avionics architecture come in Build 3): layout picker, parameter form, live top, front and side SVG drawings, geometry review.
+- 3D Design Studio (partial: mass and placement come in Build 5): three.js 0.170.0 vendored in `vendor/three/`, orbit, pan, zoom, standard views, the same dimension form, and a 2D fallback without WebGL.
+- Learning: lessons "Multirotor layout, disc loading and ideal hover power" and "Wing planform and tail volume coefficients", with calculators. Glossary now 48 terms, sorted.
+
 ## Pending modules
 
-Drone Architecture, 3D Design Studio (Build 2) · Avionics Laboratory, Component Library (Build 3) · Propulsion Laboratory, Power & Energy (Build 4) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12).
+Drone Architecture power/avionics architecture (Build 3) · 3D Studio mass/CG/placement (Build 5) · Avionics Laboratory, Component Library (Build 3) · Propulsion Laboratory, Power & Energy (Build 4) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12).
 
 ## Known issues and limitations
 
@@ -38,6 +52,9 @@ Drone Architecture, 3D Design Studio (Build 2) · Avionics Laboratory, Component
 - Panels can be collapsed and resized but not rearranged (deferred; prompt says "where practical").
 - The simulation-status indicator is static until the simulator exists (Build 6).
 - Interactive charts are basic SVG; Chart.js arrives in Build 4.
+- The 3D model is a conceptual shape: flat surfaces, no aerofoil thickness, landing gear or components yet.
+- The geometry review uses MTOW from the requirements; there is no mass estimate yet (Build 4).
+- When a Drive merge combines a category change with a layout edit from another device, the Architecture page asks for a layout. This is handled, but the user has to choose one.
 - Projects are per browser and per origin (hosted site vs. localhost); move them with backups.
 
 ## Blocked / needs owner action
@@ -65,4 +82,4 @@ Drone Architecture, 3D Design Studio (Build 2) · Avionics Laboratory, Component
 
 ## Next exact task
 
-**Build 2, task 1:** define the configuration schema (`modules.configuration` with category-specific layouts), bump the project schema to v2 with a v1→v2 document migration, and add migration and validation tests. Then the configuration wizard in Drone Architecture. See `docs/roadmap.md`.
+**Build 3, task 1:** component data model. Define a catalogue schema (flight controller, ESC, motor, receiver, telemetry radio, GNSS, companion computer, sensors, payload interface) with provenance per value. Bump the project schema to v3 with `modules.components` and a 2→3 migration, and add tests. See `docs/roadmap.md` (Build 3 plan).

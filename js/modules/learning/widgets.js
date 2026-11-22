@@ -8,6 +8,8 @@ import { DIMENSIONS, convert, toSI, fromSI, unitsFor } from '../../engineering/u
 import { isa, densityAltitude, MIN_ALTITUDE, MAX_ALTITUDE } from '../../engineering/atmosphere.js';
 import { formatNumber } from '../../utils/format.js';
 import { lineChart } from '../../visualisation/plots.js';
+import { wingPlanform } from '../../engineering/geometry.js';
+import { G0 } from '../../engineering/atmosphere.js';
 
 const n = (value, digits = 5) => formatNumber(value, { digits });
 
@@ -258,8 +260,111 @@ function isaCalculator() {
   );
 }
 
+// ---- Multirotor hover (momentum theory) -------------------------------------------------
+
+function hoverCalculator() {
+  const state = { mass: '1.5', rotors: '4', diameter: '10', arm: '225', altitude: '0' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('hv')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const charts = h('div', { class: 'chart-row' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    const rotors = v.rotors.value;
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.mass.value <= 0 || v.diameter.value <= 0 || v.arm.value <= 0 || !Number.isInteger(rotors) || rotors < 3 || rotors > 12 || v.altitude.value < MIN_ALTITUDE || v.altitude.value > 20000) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter a positive mass, diameter and arm length, 3–12 rotors (whole number) and an altitude between −5 000 and 20 000 m.'));
+      charts.replaceChildren();
+      return;
+    }
+    const D = toSI(v.diameter.value, 'in');
+    const R = toSI(v.arm.value, 'mm');
+    const rho = isa(v.altitude.value).density;
+    const W = v.mass.value * G0;
+    const A = (rotors * Math.PI * D * D) / 4;
+    const s = 2 * R * Math.sin(Math.PI / rotors);
+    const power = (area) => W * Math.sqrt(W / (2 * rho * area));
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Axis spacing s = 2R sin(π/n)', `${n(s * 1000, 4)} mm`, ''],
+          ['Tip clearance s − D', `${n((s - D) * 1000, 4)} mm`, s - D < 0 ? 'Propellers overlap!' : s - D < 0.1 * D ? 'Below 10 % of D' : 'OK'],
+          ['Total disc area A', `${n(A, 4)} m²`, provenanceBadge('analytical')],
+          ['Disc loading DL', `${n(W / A, 4)} Pa`, 'm g₀ / A'],
+          ['Air density ρ (ISA)', `${n(rho, 4)} kg/m³`, `at ${v.altitude.value} m`],
+          ['Ideal induced velocity v_h', `${n(Math.sqrt(W / A / (2 * rho)), 4)} m/s`, '√(DL / 2ρ)'],
+          ['Ideal hover power', `${n(power(A), 4)} W`, 'lower bound (figure of merit = 1)'],
+        ],
+        'Hover calculation result',
+      ),
+    );
+    const points = [];
+    for (let d = 5; d <= 32; d += 0.5) points.push([d, power((rotors * Math.PI * toSI(d, 'in') ** 2) / 4)]);
+    charts.replaceChildren(
+      lineChart({
+        points,
+        marker: [v.diameter.value, power(A)],
+        title: 'Ideal hover power vs propeller diameter',
+        description: `Ideal hover power for ${v.mass.value} kg on ${rotors} rotors, propeller diameter 5–32 in; marker at the chosen diameter.`,
+        xLabel: 'Propeller diameter (in)',
+        yLabel: 'Ideal power (W)',
+      }),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('mass', 'Take-off mass m', 'kg'), make('rotors', 'Number of rotors n', ''), make('diameter', 'Propeller diameter D', 'in'), make('arm', 'Rotor distance from centre R', 'mm'), make('altitude', 'Altitude (ISA)', 'm')),
+    output,
+    charts,
+    h('p', { class: 'calc__note' }, 'Ideal momentum theory on a regular ring of rotors, one rotor per axis. Real rotors need more power; see the lesson text.'),
+  );
+}
+
+// ---- Wing planform and tail volume ------------------------------------------------------
+
+function planformCalculator() {
+  const state = { span: '2', root: '0.3', taper: '0.6', sweep: '0', sh: '0.096', sv: '0.045', arm: '0.8' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('pf')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.span.value <= 0 || v.root.value <= 0 || v.taper.value <= 0 || v.taper.value > 1.5 || Math.abs(v.sweep.value) >= 80 || v.sh.value < 0 || v.sv.value < 0 || v.arm.value <= 0) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter positive dimensions, a taper ratio up to 1.5 and a sweep below 80°.'));
+      return;
+    }
+    const wp = wingPlanform({ span: v.span.value, rootChord: v.root.value, taperRatio: v.taper.value, sweepLE: toSI(v.sweep.value, 'deg') });
+    const VH = (v.sh.value * v.arm.value) / (wp.area * wp.mac);
+    const VV = (v.sv.value * v.arm.value) / (wp.area * v.span.value);
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Wing area S', `${n(wp.area, 4)} m²`, provenanceBadge('analytical')],
+          ['Aspect ratio AR', n(wp.aspectRatio, 4), 'b² / S'],
+          ['Mean aerodynamic chord c̄', `${n(wp.mac, 4)} m`, `at ȳ = ${n(wp.yMac, 4)} m`],
+          ['Quarter-chord sweep', `${n(fromSI(wp.sweepQC, 'deg'), 4)}°`, ''],
+          ['Horizontal tail volume V_H', n(VH, 3), VH < 0.4 ? 'Below the typical 0.4–0.7' : VH > 0.7 ? 'Above the typical 0.4–0.7' : 'Typical'],
+          ['Vertical tail volume V_V', n(VV, 3), VV < 0.02 ? 'Below the typical 0.02–0.05' : VV > 0.05 ? 'Above the typical 0.02–0.05' : 'Typical'],
+        ],
+        'Planform calculation result',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('span', 'Span b', 'm'), make('root', 'Root chord c_r', 'm'), make('taper', 'Taper ratio λ', ''), make('sweep', 'Leading-edge sweep', '°'), make('sh', 'Horizontal tail area S_h', 'm²'), make('sv', 'Vertical tail area S_v', 'm²'), make('arm', 'Tail arm l_t', 'm')),
+    output,
+    h('p', { class: 'calc__note' }, 'Typical ranges from conceptual-design statistics (Raymer, table 6.4): guidance, not stability proof.'),
+  );
+}
+
 export const WIDGETS = Object.freeze({
   uncertainty: uncertaintyCalculator,
   units: unitConverter,
   isa: isaCalculator,
+  hover: hoverCalculator,
+  planform: planformCalculator,
 });

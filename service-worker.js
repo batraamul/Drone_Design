@@ -12,7 +12,7 @@
  *  - The worker never touches IndexedDB: user projects survive every update.
  */
 const APP_PREFIX = 'aerolab-x';
-const VERSION = '0.2.2';
+const VERSION = '0.3.0';
 const BUILD_ID = 'dev';
 const CACHE_NAME = `${APP_PREFIX}-v${VERSION}-${BUILD_ID}`;
 
@@ -41,10 +41,14 @@ const PRECACHE_URLS = [
   './js/theme-boot.js',
   './js/version.js',
   './js/engineering/atmosphere.js',
+  './js/engineering/configuration.js',
+  './js/engineering/geometry.js',
   './js/engineering/provenance.js',
   './js/engineering/requirements.js',
   './js/engineering/units.js',
+  './js/modules/architecture.js',
   './js/modules/dashboard.js',
+  './js/modules/design-studio.js',
   './js/modules/module-registry.js',
   './js/modules/planned-module.js',
   './js/modules/projects.js',
@@ -76,6 +80,10 @@ const PRECACHE_URLS = [
   './js/utils/preferences.js',
   './js/utils/pwa.js',
   './js/visualisation/plots.js',
+  './js/visualisation/view3d.js',
+  './js/visualisation/views2d.js',
+  './vendor/three/OrbitControls.js',
+  './vendor/three/three.module.min.js',
 ];
 // PRECACHE-END
 
@@ -84,8 +92,6 @@ self.addEventListener('install', (event) => {
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' })));
-      // 0.2.2 is a safety release: take over at once so the window guard reaches every window.
-      await self.skipWaiting();
     })(),
   );
 });
