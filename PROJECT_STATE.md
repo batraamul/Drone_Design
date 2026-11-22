@@ -5,7 +5,7 @@ Single source of truth for where development stands. Read this at the start of e
 | Item | State |
 |---|---|
 | Current build | **Build 1 — Foundation: complete and tested locally** |
-| Application version | 0.2.0 (Build 1.1: Google Drive sync, install help, getting-started guide) |
+| Application version | 0.2.1 (Build 1.1 + Safari window guard that keeps E-Diary and AEROLAB X apart) |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
@@ -22,6 +22,7 @@ Single source of truth for where development stands. Read this at the start of e
 - Learning Centre (partial): 3 lessons with calculators and knowledge checks; 41-term glossary.
 - PWA: manifest, icons, versioned service worker, update flow; install card with per-OS instructions.
 - Google Drive sync (0.2.0): per-device JSON copies in the user's Drive, three-way merge with deletion markers, erase-local-copy option.
+- Safari window guard (0.2.1): js/theme-boot.js sends a standalone Safari window not launched with ?app=aerolab back to /e-diary/; app.js does not boot there.
 - Getting-started checklist and plain-English design-review summary.
 - Quality: structural gate, Node tests, Playwright tests; GitHub Actions CI + Pages deployment workflow.
 - Documentation: README, CHANGELOG, docs/ (architecture, roadmap, engineering models, data model, AI models, deployment).
@@ -39,6 +40,8 @@ Drone Architecture, 3D Design Studio (Build 2) · Avionics Laboratory, Component
 - Projects are per browser and per origin (hosted site vs. localhost); move them with backups.
 
 ## Blocked / needs owner action
+
+- Permanent separation from E-Diary: move the repo to its own host (free GitHub organisation, e.g. aerolab-x.github.io), then update CANONICAL_URL and the OAuth origins. The 0.2.1 guard is the interim fix.
 
 1. ~~Push access~~ — resolved 2026-11-22; Build 1 pushed to `main`.
 2. ~~Enable GitHub Pages~~ — done 2026-11-22.

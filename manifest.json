@@ -3,7 +3,7 @@
   "short_name": "AEROLAB X",
   "description": "Local-first engineering workstation for designing, analysing and documenting civilian UAVs and micro aerial vehicles.",
   "id": "./",
-  "start_url": "./#/dashboard",
+  "start_url": "./?app=aerolab#/dashboard",
   "scope": "./",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],

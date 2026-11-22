@@ -329,6 +329,8 @@ function notFound(route, ctx) {
 }
 
 async function boot() {
+  // Inside another app's Safari window (see theme-boot.js): don't start, the window is being handed back.
+  if (window.__aerolabForeignWindow) return;
   const log = new Logger();
   const store = new Store();
   const prefs = new Preferences();

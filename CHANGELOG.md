@@ -2,6 +2,13 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] — 2026-11-22 — Keep E-Diary and AEROLAB X apart in Safari
+
+### Fixed
+
+- **E-Diary window showing AEROLAB X (Safari on macOS).** A Safari "Add to Dock" web app claims the whole host, and E-Diary shares `batraamul.github.io`. When AEROLAB X now loads inside a standalone Safari window that was not launched as AEROLAB X, it does not start; it shows "Returning to E-Diary…" and sends the window back to `/e-diary/` after 1.5 s. A button keeps a genuine AEROLAB X web app if one was installed before this release.
+- AEROLAB X's own launch address carries `?app=aerolab` (manifest `start_url` and the address of a normal tab), so its own Dock app is recognised. Chrome, Edge, iOS and Android are unaffected.
+
 ## [0.2.0] — 2026-11-22 — Build 1.1: Google Drive sync and usability
 
 ### Added
