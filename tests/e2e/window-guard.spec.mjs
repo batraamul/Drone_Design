@@ -37,3 +37,38 @@ test('Chrome on a Mac runs AEROLAB X normally, also as an installed app', async 
   await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
   expect(page.url()).toContain('/Drone_Design/');
 });
+
+async function asChromeAppWindow(browser) {
+  const context = await browser.newContext();
+  await context.addInitScript(() => {
+    const real = window.matchMedia.bind(window);
+    window.matchMedia = (query) =>
+      query.includes('display-mode: standalone')
+        ? { matches: true, media: query, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }
+        : real(query);
+  });
+  await context.route('**/e-diary/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>E-Diary Planner</title><h1>E-Diary</h1>' })
+  );
+  return context;
+}
+
+test('an installed-app window not launched as AEROLAB X (E-Diary with a stale start address) returns to E-Diary', async ({ browser, baseURL }) => {
+  const context = await asChromeAppWindow(browser);
+  const page = await context.newPage();
+  await page.goto(`${baseURL}#/dashboard`);
+  await page.waitForURL('**/e-diary/index.html', { timeout: 5000 });
+  await expect(page).toHaveTitle('E-Diary Planner');
+  await context.close();
+});
+
+test('the genuine AEROLAB X app window (launched from its start_url) runs', async ({ browser, baseURL }) => {
+  const context = await asChromeAppWindow(browser);
+  const page = await context.newPage();
+  await page.goto(`${baseURL}?launch=aerolab-x#/dashboard`);
+  await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+  await page.reload();
+  await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
+  expect(page.url()).toContain('/Drone_Design/');
+  await context.close();
+});

@@ -7,6 +7,7 @@ All notable changes to AEROLAB X are recorded here. The format follows [Keep a C
 ### Fixed
 
 - **Root cause: shared app identity.** The manifest `id` was `"./"`, the same as E-Diary's. Chrome resolves a relative id against the origin, so both apps had the identity `https://batraamul.github.io/`. The browser treated AEROLAB X as a new version of E-Diary: the E-Diary icon opened AEROLAB X, and Chrome offered to "update" E-Diary's name and logo to AEROLAB X. The id is now `/Drone_Design/aerolab-x`, unique to AEROLAB X. A regression test stops it ever matching E-Diary again.
+- **Repair for already-installed E-Diary apps.** While the ids collided, the browser could overwrite E-Diary's saved start address with AEROLAB X's. AEROLAB X's start_url now carries `launch=aerolab-x`. Any installed-app window on this host that opens AEROLAB X without it is sent to `/e-diary/index.html`. The browser then re-reads E-Diary's own manifest and restores E-Diary.
 - The 0.2.1 guard let AEROLAB X keep running inside the E-Diary Safari window. The rule is now strict: on batraamul.github.io, AEROLAB X never runs inside any Safari Dock window on a Mac; it sends the window straight to E-Diary (`/e-diary/index.html`) before anything starts. The `?app=aerolab` exception and the address tagging are removed, and any stored exception is cleared.
 - The service worker activates immediately for this release, so the corrected guard reaches windows that still run 0.2.1.
 - macOS install help now says to install AEROLAB X with Chrome or Edge, not Safari "Add to Dock".

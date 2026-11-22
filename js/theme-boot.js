@@ -3,8 +3,7 @@
  * A Safari "Add to Dock" web app claims its whole host, and E-Diary
  * (batraamul.github.io/e-diary/) shares this host. So on a Mac, AEROLAB X never runs
  * inside a Safari Dock window: it hands the window straight back to E-Diary.
- * AEROLAB X on a Mac runs in a normal browser tab or as a Chrome/Edge app, which
- * keep each app in its own scope. (Lifted once AEROLAB X has its own host.)
+ * AEROLAB X on a Mac runs in a normal browser tab or as a Chrome/Edge app. (Lifted once AEROLAB X has its own host.)
  */
 (function windowGuard() {
   try {
@@ -16,7 +15,16 @@
       mm('(display-mode: fullscreen)') || mm('(display-mode: window-controls-overlay)');
     var ua = navigator.userAgent || '';
     var macSafari = /Macintosh|Mac OS X/.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR\/|Firefox|FxiOS/.test(ua) && !(navigator.maxTouchPoints > 1);
-    if (!appWindow || !macSafari) return;
+    if (!appWindow) return;
+    // A genuine AEROLAB X app window is launched from the manifest start_url, which
+    // carries launch=aerolab-x. Any other app window here (for example E-Diary's, whose
+    // saved start address was overwritten while the two apps shared an id) goes back
+    // to E-Diary, so the browser re-reads E-Diary's own manifest and restores it.
+    var params = new URLSearchParams(location.search);
+    if (!macSafari) {
+      if (params.get('launch') === 'aerolab-x') { sessionStorage.setItem('aerolab:launched', '1'); return; }
+      if (sessionStorage.getItem('aerolab:launched') === '1') return;
+    }
     window.__aerolabForeignWindow = true;
     location.replace(location.origin + '/e-diary/index.html');
   } catch (error) {
