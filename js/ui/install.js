@@ -37,7 +37,7 @@ function platform() {
 
 const STEPS = {
   windows: 'Chrome or Edge: click the install icon at the right end of the address bar (or menu ⋮ → “Install AEROLAB X”). It appears in the Start menu; right-click it there to pin to the taskbar.',
-  mac: 'Chrome or Edge: click the install icon in the address bar. Safari (macOS 14 or later): File → Add to Dock.',
+  mac: 'Use Google Chrome or Edge: click the install icon in the address bar. Do not use Safari “Add to Dock”: Safari would mix AEROLAB X up with E-Diary, which lives on the same web address.',
   linux: 'Chrome or Chromium on Ubuntu or Kali: click the install icon in the address bar. It appears in the applications menu.',
   android: 'Chrome: menu ⋮ → “Install app” (or “Add to Home screen”).',
   ios: 'Safari: Share → “Add to Home Screen”.',

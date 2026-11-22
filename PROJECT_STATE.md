@@ -5,7 +5,7 @@ Single source of truth for where development stands. Read this at the start of e
 | Item | State |
 |---|---|
 | Current build | **Build 1 — Foundation: complete and tested locally** |
-| Application version | 0.2.1 (Build 1.1 + Safari window guard that keeps E-Diary and AEROLAB X apart) |
+| Application version | 0.2.2 (Build 1.1 + strict Safari window guard: AEROLAB X never runs in a Safari Dock window on batraamul.github.io) |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
@@ -22,7 +22,8 @@ Single source of truth for where development stands. Read this at the start of e
 - Learning Centre (partial): 3 lessons with calculators and knowledge checks; 41-term glossary.
 - PWA: manifest, icons, versioned service worker, update flow; install card with per-OS instructions.
 - Google Drive sync (0.2.0): per-device JSON copies in the user's Drive, three-way merge with deletion markers, erase-local-copy option.
-- Safari window guard (0.2.1): js/theme-boot.js sends a standalone Safari window not launched with ?app=aerolab back to /e-diary/; app.js does not boot there.
+- Manifest id (0.2.2): "/Drone_Design/aerolab-x". It must never be "./" or "/" because that collided with E-Diary's identity (tests/regression/manifest-identity.test.mjs).
+- Safari window guard (0.2.2): on batraamul.github.io, any Safari Dock window on a Mac is sent to /e-diary/index.html before the app boots. On the Mac, AEROLAB X is installed via Chrome/Edge until it has its own host.
 - Getting-started checklist and plain-English design-review summary.
 - Quality: structural gate, Node tests, Playwright tests; GitHub Actions CI + Pages deployment workflow.
 - Documentation: README, CHANGELOG, docs/ (architecture, roadmap, engineering models, data model, AI models, deployment).

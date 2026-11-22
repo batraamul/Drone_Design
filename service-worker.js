@@ -12,7 +12,7 @@
  *  - The worker never touches IndexedDB: user projects survive every update.
  */
 const APP_PREFIX = 'aerolab-x';
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 const BUILD_ID = 'dev';
 const CACHE_NAME = `${APP_PREFIX}-v${VERSION}-${BUILD_ID}`;
 
@@ -84,6 +84,8 @@ self.addEventListener('install', (event) => {
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(PRECACHE_URLS.map((url) => new Request(url, { cache: 'reload' })));
+      // 0.2.2 is a safety release: take over at once so the window guard reaches every window.
+      await self.skipWaiting();
     })(),
   );
 });

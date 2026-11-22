@@ -23,28 +23,17 @@ async function asSafariWebApp(browser) {
   return context;
 }
 
-test('inside the E-Diary Safari window, AEROLAB X returns the window to E-Diary', async ({ browser, baseURL }) => {
+test('inside a Safari Dock window (the E-Diary app), AEROLAB X returns the window to E-Diary', async ({ browser, baseURL }) => {
   const context = await asSafariWebApp(browser);
   const page = await context.newPage();
   await page.goto(baseURL);
-  await expect(page.getByText('This window is your E-Diary. Returning to E-Diary…')).toBeVisible();
-  await page.waitForURL('**/e-diary/', { timeout: 5000 });
+  await page.waitForURL('**/e-diary/index.html', { timeout: 5000 });
   await expect(page).toHaveTitle('E-Diary Planner');
   await context.close();
 });
 
-test('AEROLAB X launched as its own Safari web app is left alone', async ({ browser, baseURL }) => {
-  const context = await asSafariWebApp(browser);
-  const page = await context.newPage();
-  await page.goto(`${baseURL}?app=aerolab#/dashboard`);
-  await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
-  await page.waitForTimeout(2000);
-  expect(page.url()).toContain('/Drone_Design/');
-  await context.close();
-});
-
-test('a normal browser tab is not redirected and its address is tagged for Add to Dock', async ({ page }) => {
+test('Chrome on a Mac runs AEROLAB X normally, also as an installed app', async ({ page }) => {
   await page.goto('./#/dashboard');
   await expect(page.locator('body')).toHaveAttribute('data-app-ready', 'true');
-  expect(page.url()).toContain('?app=aerolab#/dashboard');
+  expect(page.url()).toContain('/Drone_Design/');
 });
