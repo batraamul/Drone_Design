@@ -2,11 +2,11 @@
 
 All engineering quantities are stored in **SI units**. Every document carries a schema version so it can be migrated forward.
 
-## 1. Project document (schema version 2)
+## 1. Project document (schema version 3)
 
 | Field | Type | Description |
 |---|---|---|
-| `schemaVersion` | integer | Document schema version (currently 2; 1 = Build 1) |
+| `schemaVersion` | integer | Document schema version (currently 3; 1 = Build 1, 2 = Build 2) |
 | `id` | string `prj_…` | Stable project identifier |
 | `revision` | integer | Persistence revision; increments on every save; used for conflict detection |
 | `name` | string ≤ 120 | Project name |
@@ -17,7 +17,7 @@ All engineering quantities are stored in **SI units**. Every document carries a 
 | `tags` | string[] ≤ 20 | Free tags (each ≤ 40 characters) |
 | `requirements` | object | Targets, see below |
 | `notes` | Note[] ≤ 500 | Design log |
-| `modules` | object | Module data. `modules.configuration` (schema 2, required): see below. Unknown module keys are preserved |
+| `modules` | object | Module data: `modules.configuration` (schema 2) and `modules.components` (schema 3), both required; see below. Unknown module keys are preserved |
 | `createdAt`, `updatedAt` | ISO 8601 | Timestamps |
 | `deletedAt` | ISO 8601 or null | Set when the project is in the Trash |
 | `appVersion` | string | Application version that last wrote the document |
@@ -31,6 +31,26 @@ All engineering quantities are stored in **SI units**. Every document carries a 
 - Validation also requires the wing leading edge to lie within the fuselage length.
 - A layout from another category is tolerated, for example after a Drive merge of a category change; the Architecture page then asks for a layout.
 - Import and migration repair invalid values to the layout defaults, with warnings.
+
+### Components (`modules.components`, schema 3)
+
+`{ items: Component[] (≤ 200), connections: Connection[] (≤ 600) }`
+
+| Component field | Type | Notes |
+|---|---|---|
+| `id` | `cmp_…` | Unique within the project |
+| `type` | enum | `battery`, `regulator`, `flight-controller`, `companion`, `esc`, `receiver`, `telemetry`, `gnss`, `sensor`, `payload` |
+| `name` | string ≤ 120 | |
+| `catalogueId` | string or null | Library entry it came from |
+| `quantity` | integer 1–64 | Only for ESC, GNSS, sensor and payload; 1 otherwise |
+| `provenance` | enum | `illustrative`, `datasheet`, `user-input`, `measured` |
+| `source` | string ≤ 500 | Datasheet or test reference; expected for datasheet and measured values |
+| `specs` | object | The fields of its type, in SI units (V, A, C, kg, Hz, W) |
+| `interfaces` | object | Port counts per interface kind allowed for its type |
+
+A connection is `{ id: 'con_…', kind: 'power' | 'uart' | 'i2c' | 'spi' | 'can' | 'pwm' | 'usb' | 'ethernet', from, to }`, joining two different existing components.
+
+Import and migration keep valid values, reset invalid ones to neutral defaults, and drop connections to missing components, with warnings.
 
 ### Requirement entry
 

@@ -1,13 +1,13 @@
 # Roadmap
 
-Twelve controlled builds (master prompt §26). Each build must leave the application runnable and pass its acceptance criteria before the next is treated as complete.
+Fifteen controlled builds: the twelve of the master prompt (§26) plus three extension builds agreed on 2026-11-22. Each build must leave the application runnable and pass its acceptance criteria before the next is treated as complete. The civilian-only rules apply to every build, including Build 14: no weapon, targeting, weapon-release or harmful-payload functions, and no connection of AI or autonomy to physical flight controls.
 
 | Build | Name | Scope | Acceptance criteria | Status |
 |---|---|---|---|---|
 | 1 | Foundation | Repository inspection; application shell; navigation; dashboard; theme; project manager; IndexedDB; autosave; documentation | App launches, navigation works, projects create/save/reload, no critical console errors, tests pass | **Complete — deployed (v0.1.0–0.2.2)** |
 | 2 | Configuration and 3D design | Aircraft categories, configuration wizard, geometry parameters, initial 2D/3D conceptual models | Configurations persist and visualisations respond to parameter changes | **Complete — v0.3.0** (micro-lab models stay in Build 6) |
-| 3 | Avionics and electronics | Component catalogue, interfaces, block diagrams, power draw and compatibility checks | Components can be added, connected, saved and checked | Next |
-| 4 | Propulsion and energy | Motor/propeller/battery models, mass and power budgets, endurance estimates | Equations tested and dependent project values update | Planned |
+| 3 | Avionics and electronics | Component catalogue, interfaces, block diagrams, power draw and compatibility checks | Components can be added, connected, saved and checked | **Complete — v0.4.0** (link budget and SDR in Build 7) |
+| 4 | Propulsion and energy | Motor/propeller/battery models, mass and power budgets, endurance estimates | Equations tested and dependent project values update | Next |
 | 5 | Aerodynamics and structures | Wing geometry, aerodynamic estimates, CG and preliminary structural models | Plots update, units are correct and model limitations are documented | Planned |
 | 6 | Flight dynamics | Attitude/trajectory simulation, wind disturbance, response plots, deterministic scenarios | Reproducible simulation and visible response to parameter changes | Planned |
 | 7 | Mission and payload | Civilian payloads, camera calculations, waypoints, profiles, weather inputs, mission feasibility | Payload mass/power affects aircraft budget and mission estimates | Planned |
@@ -16,6 +16,9 @@ Twelve controlled builds (master prompt §26). Each build must leave the applica
 | 10 | Integrated digital twin | Geometry, dynamics, virtual sensors, camera stream, energy, simulation and AI outputs connected | Simulated aircraft state and AI results synchronised and saved | Planned |
 | 11 | Engineering intelligence and reports | Compatibility engine, warnings, sensitivity analysis, design comparison, FMEA, exportable reports | Warnings explainable; reports include assumptions and versioning | Planned |
 | 12 | Release | Regression, performance, storage, UI, accessibility, browser and deployment testing; documentation; release | Clean deployment, stable application, verified update flow, documented limitations | Planned |
+| 13 | Stratospheric sounding | Balloon ascent and burst model; release-to-glide transition; glide-back recovery simulation (low Reynolds number); radiosonde sensor models with error and lag; WMO-style profile export | Ascent rate and burst altitude agree with published balloon data within a stated tolerance; simulated profiles export and re-import; all simulated data labelled | Planned |
+| 14 | Defence-style assurance | Environmental and EMC qualification test planning (MIL-STD-810H, MIL-STD-461G, RTCA DO-160G-style matrices); reliability prediction and FMECA; requirements traceability and configuration management; link-security and GNSS-denied navigation research checklists | Every requirement traces to design data and a verification method; FMECA and reliability results reproducible; every checklist cites its source standard and revision | Planned |
+| 15 | Open publication | Validation benchmark suite against published data; usability-study kit; reproducible results package; Apache-2.0 release with CITATION.cff and archived DOI (Zenodo); manuscript for an IEEE Transactions venue | Benchmarks reproduce from a clean clone with one command; archived release with DOI; manuscript figures generated from the released code | Planned |
 
 ## Build 2 (complete, v0.3.0)
 
@@ -29,13 +32,48 @@ What was delivered, against the plan:
 
 Two lessons were added: rotor layout and hover, and wing planform and tail volume, each with a calculator.
 
-## Build 3 plan (next)
+## Build 3 (complete, v0.4.0)
 
-1. **Component data model**: catalogue schema (flight controller, ESC, motor, receiver, telemetry radio, GNSS, companion computer, sensors, payload interface) with provenance per value (datasheet with a source reference, or illustrative). Project schema v3 adds `modules.components`, with a migration. ← *next exact task*
-2. A small **illustrative catalogue**, clearly labelled as not real products, plus "add your own component" with a datasheet reference.
-3. **Interfaces and connections** (power, PWM/DShot, UART, I²C, SPI, CAN, Ethernet, USB) and a block-diagram editor.
-4. **Power-draw budget** per voltage rail, and **compatibility checks** (voltage, current, logic level, connector, port count), each explainable.
-5. Browser tests: add, connect, save and check components.
+1. Component data model, provenance per component, and project schema v3 with the 2→3 migration. Done.
+2. Illustrative catalogue of 20 parts (all named "Example …") and custom components with a datasheet source. Done.
+3. Power and data connections, and an auto-laid-out block diagram. Done.
+4. Worst-case power budget per rail and compatibility checks (voltage, current, derating, ports, logic levels, provenance). Done.
+5. Browser tests: add, connect, save and check. Done (`tests/e2e/build3.spec.mjs`).
+
+A lesson on power budgets, regulators and logic levels was added, with a calculator.
+
+## Build 4 plan (next)
+
+1. **Motor and propeller data model.** Motor Kv, resistance, no-load current and limits. Propeller diameter, pitch, and C_T/C_P data or a simple model. Provenance per value. Project schema v4. ← *next exact task*
+2. **Propulsion model.** Thrust, torque, current and power versus throttle at a given air density, using the Build 2 disc geometry. Hover operating point and thrust-to-weight ratio.
+3. **Battery model.** Equivalent circuit (open-circuit voltage curve and internal resistance), voltage sag under load, usable capacity.
+4. **Mass budget.** Components (Build 3), structure estimate and payload, checked against the MTOW requirement.
+5. **Endurance.** Hover and cruise endurance, with the ESC current estimates of Build 3 replaced by the model. Chart.js vendored for the curves.
+6. Tests: equations against published propeller and motor test data. Browser tests: dependent values update.
+
+## Extension builds 13–15 (detail)
+
+### Build 13 — Stratospheric Sounding Laboratory
+1. **Balloon ascent:** lift gas (He/H₂), free lift, ascent rate from a drag balance with Reynolds-dependent drag coefficient, envelope growth with altitude, and burst at the rated diameter. Inputs are ISA or a user-supplied sounding.
+2. **Release and glide-back:** release at a set altitude or pressure, release-to-glide transition dynamics, and low-Re glide polar (uses the Build 5 aerodynamics). Recovery-point prediction under the wind profile. Simulation only, never connected to hardware.
+3. **Sonde sensor models:** temperature (time constant and solar radiation error), humidity (time lag, low-temperature dry bias), pressure or GNSS-derived height, and GNSS wind. Each has its source and stated uncertainty.
+4. **Data products:** simulated profiles exported as CSV/JSON, a TEMP-like text listing of standard and significant levels, and a BUFR template description. Everything is labelled as simulated.
+5. **Validation:** ascent rate and burst height compared with published balloon-manufacturer charts and archived soundings.
+
+### Build 14 — Defence-style assurance (engineering rigour, civilian scope)
+1. **Requirements traceability matrix:** requirement → design data → verification method (analysis, inspection, demonstration, test) → evidence and status.
+2. **Environmental and EMC qualification planning:** test matrices modelled on MIL-STD-810H (temperature, altitude, humidity, vibration, shock, rain, dust), MIL-STD-461G (CE/CS/RE/RS) and RTCA DO-160G. They are planning aids that cite the standard and revision; they are not compliance claims.
+3. **Reliability:** parts-count and stress prediction with documented failure-rate sources, FMECA with criticality, and fault-tree export.
+4. **Configuration management:** baselines, change requests and design-version diffing (uses the existing version system).
+5. **Research checklists:** link security (encryption, authentication, failsafe behaviour) and GNSS-denied navigation (sensor-fusion options evaluated in simulation).
+6. **Out of scope by design:** weapons, targeting, weapon release, delivery of harmful payloads, electronic attack, and any autonomy connected to real flight controls.
+
+### Build 15 — Open publication (IEEE Transactions, open source and free)
+1. **Validation benchmark suite:** each model compared with published data (ISA tables, momentum-theory and propeller test data, wing-geometry textbook cases, battery discharge data), with tolerances. It runs with `npm run benchmark`.
+2. **Reproducible results package:** pinned dependencies, deterministic seeds, and a script that regenerates every manuscript figure and table.
+3. **Usability and educational-value study kit:** tasks, questionnaires (SUS), consent template and anonymised data schema.
+4. **Release:** Apache-2.0 (in place since v0.4.0), CITATION.cff, a tagged GitHub release archived on Zenodo for a DOI, and a software-paper checklist.
+5. **Manuscript:** target IEEE Transactions on Education, IEEE Transactions on Aerospace and Electronic Systems, or IEEE Transactions on Geoscience and Remote Sensing (sounding results). Open-access options: IEEE Access, or a software paper in SoftwareX or JOSS.
 
 ## Cross-cutting work carried through all builds
 

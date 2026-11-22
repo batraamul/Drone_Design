@@ -26,6 +26,7 @@ import { emptyState, button } from './ui/components.js';
 import { h, $ } from './utils/dom.js';
 import { evaluateRequirements, SEVERITY_ORDER } from './engineering/requirements.js';
 import { computeGeometry } from './engineering/geometry.js';
+import { analyseElectrical } from './engineering/electrical.js';
 import { REQUIREMENT_KEYS } from './engineering/requirements.js';
 import { getModule } from './modules/module-registry.js';
 import * as dashboardView from './modules/dashboard.js';
@@ -35,19 +36,21 @@ import * as learningView from './modules/learning/index.js';
 import * as plannedView from './modules/planned-module.js';
 import * as architectureView from './modules/architecture.js';
 import * as designStudioView from './modules/design-studio.js';
+import * as avionicsView from './modules/avionics.js';
+import * as componentLibraryView from './modules/component-library.js';
 import { downloadJSON, pickFile, readFileText, timestampForFile } from './utils/file.js';
 import { slugify } from './utils/format.js';
 import { APP_NAME, APP_VERSION, BUILD_NUMBER } from './version.js';
 
-const VIEWS = { dashboard: dashboardView, projects: projectsView, settings: settingsView, learning: learningView, architecture: architectureView, 'design-studio': designStudioView };
+const VIEWS = { dashboard: dashboardView, projects: projectsView, settings: settingsView, learning: learningView, architecture: architectureView, 'design-studio': designStudioView, avionics: avionicsView, components: componentLibraryView };
 
 const EMPTY_EVALUATION = Object.freeze({ checks: [], derived: [], completeness: { set: 0, total: REQUIREMENT_KEYS.length } });
 
 /** One design review from the requirement checks and the geometry checks. */
-function combineReview(requirements, geometry) {
-  if (!geometry) return requirements;
-  const checks = [...requirements.checks, ...geometry.checks].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-  return { ...requirements, checks, derived: [...requirements.derived, ...geometry.derived], geometry };
+function combineReview(requirements, geometry, electrical) {
+  const parts = [geometry, electrical].filter(Boolean);
+  const checks = [...requirements.checks, ...parts.flatMap((p) => p.checks)].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+  return { ...requirements, checks, derived: [...requirements.derived, ...parts.flatMap((p) => p.derived)], geometry, electrical };
 }
 
 function createActions(ctx) {
@@ -403,14 +406,20 @@ async function boot() {
     compute: (configuration, requirements) => computeGeometry(configuration, requirements),
     meta: { title: 'Conceptual geometry', model: 'Plan-form geometry; ideal momentum theory for hover (docs/engineering-models.md §5)' },
   });
+  store.define('electrical', {
+    deps: [['modules', 'components']],
+    compute: (components) => analyseElectrical(components),
+    meta: { title: 'Electrical architecture', model: 'Rail voltages, worst-case power budget, interface checks (docs/engineering-models.md §6)' },
+  });
   store.define('review', {
-    deps: [{ node: 'requirements' }, { node: 'geometry' }],
-    compute: (requirements, geometry) => combineReview(requirements, geometry),
-    meta: { title: 'Design review', model: 'Requirement checks + geometry checks' },
+    deps: [{ node: 'requirements' }, { node: 'geometry' }, { node: 'electrical' }],
+    compute: (requirements, geometry, electrical) => combineReview(requirements, geometry, electrical),
+    meta: { title: 'Design review', model: 'Requirement, geometry and electrical checks' },
   });
   ctx.engineering = {
     evaluate: () => (store.hasDocument ? store.derive('review') : EMPTY_EVALUATION),
     geometry: () => (store.hasDocument ? store.derive('geometry') : null),
+    electrical: () => (store.hasDocument ? store.derive('electrical') : analyseElectrical(null)),
   };
 
   ctx.actions = createActions(ctx);

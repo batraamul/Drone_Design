@@ -4,12 +4,13 @@ Single source of truth for where development stands. Read this at the start of e
 
 | Item | State |
 |---|---|
-| Current build | **Build 2 — Configuration and 3D design: complete** (Build 1 complete) |
-| Application version | 0.3.0 (Build 2) |
+| Current build | **Build 3 — Avionics and electronics: complete** (Builds 1–2 complete) |
+| Application version | 0.4.0 (Build 3) |
+| Licence | Apache-2.0 (LICENSE, NOTICE, CITATION.cff) since v0.4.0 |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
-| Last successful test run | 2026-11-22 — `npm test`: structural checks 12/12 groups; Node tests 84/84; Playwright 27/27 (desktop + mobile Chromium, software WebGL) |
+| Last successful test run | 2026-11-22 — `npm test`: structural 12/12 groups; Node tests 93/93; Playwright 31/31 (desktop + mobile Chromium) |
 
 ## Completed (Build 1)
 
@@ -42,9 +43,24 @@ Single source of truth for where development stands. Read this at the start of e
 - 3D Design Studio (partial: mass and placement come in Build 5): three.js 0.170.0 vendored in `vendor/three/`, orbit, pan, zoom, standard views, the same dimension form, and a 2D fallback without WebGL.
 - Learning: lessons "Multirotor layout, disc loading and ideal hover power" and "Wing planform and tail volume coefficients", with calculators. Glossary now 48 terms, sorted.
 
+## Completed (Build 3, v0.4.0)
+
+- Component model (`js/engineering/components.js`): 10 types, SI specifications, port counts, quantity, provenance and source per component. Project schema v3 (`modules.components`) with the 2→3 migration and import repair.
+- Illustrative catalogue (`js/engineering/catalogue.js`): 20 "Example …" parts plus a coherent example quadcopter set. Real product data is never reproduced; a test enforces it.
+- Electrical model (`js/engineering/electrical.js`):
+  - battery and regulator rails, pass-through flight-controller rail;
+  - worst-case loads, converter input current at the lowest V_in;
+  - battery current, power and life.
+
+  Checks AV-PWR-000…008, AV-IF-001…004 and AV-DATA-001/002 feed the shared design review (store node `electrical`).
+- Avionics Laboratory (partial: link budget and SDR in Build 7): toolbar (library, custom, example set), block diagram, component editors, connections, power-budget table with utilisation bars, compatibility checks.
+- Component Library (partial: motors and propellers in Build 4): search and type filter, specification summaries, add to project.
+- Lesson "Avionics power budgets, regulators and logic levels" with a regulator and battery-life calculator; 7 new glossary terms.
+- Licence: Apache-2.0 with NOTICE and CITATION.cff. Roadmap extended with Builds 13 (stratospheric sounding), 14 (defence-style assurance, civilian scope) and 15 (open publication). The Stratospheric Sounding Lab appears as a planned module (21 navigation entries).
+
 ## Pending modules
 
-Drone Architecture power/avionics architecture (Build 3) · 3D Studio mass/CG/placement (Build 5) · Avionics Laboratory, Component Library (Build 3) · Propulsion Laboratory, Power & Energy (Build 4) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12).
+3D Studio mass/CG/placement (Build 5) · Avionics link budget and SDR (Build 7) · Component Library motors and propellers (Build 4) · Propulsion Laboratory, Power & Energy (Build 4) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
 
 ## Known issues and limitations
 
@@ -54,6 +70,7 @@ Drone Architecture power/avionics architecture (Build 3) · 3D Studio mass/CG/pl
 - Interactive charts are basic SVG; Chart.js arrives in Build 4.
 - The 3D model is a conceptual shape: flat surfaces, no aerofoil thickness, landing gear or components yet.
 - The geometry review uses MTOW from the requirements; there is no mass estimate yet (Build 4).
+- Component data merges as one unit in Drive sync: if two devices edit components at the same time, the later edit set wins. Other project fields still merge field by field.
 - When a Drive merge combines a category change with a layout edit from another device, the Architecture page asks for a layout. This is handled, but the user has to choose one.
 - Projects are per browser and per origin (hosted site vs. localhost); move them with backups.
 
@@ -64,7 +81,7 @@ Drone Architecture power/avionics architecture (Build 3) · 3D Studio mass/CG/pl
 1. ~~Push access~~ — resolved 2026-11-22; Build 1 pushed to `main`.
 2. ~~Enable GitHub Pages~~ — done 2026-11-22.
 4. **Google Drive sync:** paste the OAuth Client ID (same as E-Diary) in Settings on each device.
-3. Optional: protect `main` (require the "Test and build" check); choose a licence.
+3. Optional: protect `main` (require the "Test and build" check). Licence chosen: Apache-2.0.
 
 ## Technical decisions
 
@@ -82,4 +99,4 @@ Drone Architecture power/avionics architecture (Build 3) · 3D Studio mass/CG/pl
 
 ## Next exact task
 
-**Build 3, task 1:** component data model. Define a catalogue schema (flight controller, ESC, motor, receiver, telemetry radio, GNSS, companion computer, sensors, payload interface) with provenance per value. Bump the project schema to v3 with `modules.components` and a 2→3 migration, and add tests. See `docs/roadmap.md` (Build 3 plan).
+**Build 4, task 1:** motor and propeller data model (Kv, resistance, no-load current, limits; diameter, pitch, C_T/C_P), with provenance per value and project schema v4 with a 3→4 migration and tests. See `docs/roadmap.md` (Build 4 plan).

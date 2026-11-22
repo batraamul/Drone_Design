@@ -1,0 +1,13 @@
+AEROLAB X — Drone Design, Intelligence & Simulation Studio
+Copyright 2026 Amul Batra
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes third-party software:
+
+- three.js 0.170.0 (vendor/three/) — Copyright © 2010-2024 three.js authors.
+  Licensed under the MIT License (see vendor/three/LICENSE).
+
+Engineering results produced by AEROLAB X are conceptual estimates for education
+and research. They are not certification evidence and no design is declared
+flight-ready by this software.

@@ -88,7 +88,7 @@ test('schema 1 → 2 adds the aircraft configuration and keeps all user content'
   const v1 = { ...v2, schemaVersion: 1, modules: { ...modulesWithoutConfig, legacy: { a: 1 } } };
   const result = migrateProject(v1);
   assert.equal(result.migrated, true);
-  assert.deepEqual(result.steps, ['1→2']);
+  assert.deepEqual(result.steps, ['1→2', '2→3']);
   assert.equal(result.doc.schemaVersion, PROJECT_SCHEMA_VERSION);
   assert.equal(result.doc.modules.configuration.layout, 'conventional');
   assert.deepEqual(result.doc.modules.legacy, { a: 1 });
@@ -104,4 +104,16 @@ test('validation reports a broken configuration', () => {
   assert.ok(validateProject(broken).some((e) => e.path === 'modules.configuration.params.armLength'));
   const unknown = { ...doc, modules: { configuration: { layout: 'warp-drive', options: {}, params: {} } } };
   assert.ok(validateProject(unknown).some((e) => e.path === 'modules.configuration.layout'));
+});
+
+test('schema 2 → 3 adds an empty component list and keeps the configuration', () => {
+  const current = createProject({ name: 'Quad', category: 'multirotor' });
+  const { components, ...rest } = current.modules;
+  const v2 = { ...current, schemaVersion: 2, modules: { ...rest, configuration: { ...rest.configuration, params: { ...rest.configuration.params, armLength: 0.3 } } } };
+  const result = migrateProject(v2);
+  assert.deepEqual(result.steps, ['2→3']);
+  assert.deepEqual(result.doc.modules.components, { items: [], connections: [] });
+  assert.equal(result.doc.modules.configuration.params.armLength, 0.3);
+  assert.deepEqual(validateProject(result.doc), []);
+  assert.ok(components, 'new projects carry a component list');
 });

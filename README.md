@@ -6,7 +6,7 @@
 
 Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
-## What it does (Builds 1–2)
+## What it does (Builds 1–3)
 
 - **Projects** — create, duplicate, tag, describe, version, compare, restore, Trash, import/export and full backups; autosave with protection against two tabs overwriting each other; undo/redo.
 - **Design requirements** — MTOW, payload, endurance, range, cruise airspeed, operating altitude and maximum wind, stored in SI units with display units of your choice, with live consistency checks (each shows its equation, inputs, assumptions and provenance).
@@ -19,7 +19,8 @@ Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
   Set its dimensions in any unit. Scale top, front and side drawings and a geometry review update as you type: propeller clearance, disc loading, ideal hover power, wing area, aspect ratio, MAC and tail volume coefficients, each with its equation.
 - **3D Design Studio** (Build 2) — rotate, pan and zoom a 3D conceptual model built from the same numbers, with standard views. The 2D drawings are shown if WebGL is unavailable.
-- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, and wing planform and tail sizing, with calculators and knowledge checks; searchable glossary.
+- **Avionics Laboratory** (Build 3) — add batteries, regulators, flight controller, ESCs, radios, GNSS, sensors and payloads. Connect power and data and see a block diagram. A worst-case power budget per rail and compatibility checks cover voltages, current ratings, ports and 3.3 V/5 V logic levels. The **Component Library** offers illustrative example parts; your own parts carry their datasheet source.
+- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, wing planform and tail sizing, and avionics power budgets, with calculators and knowledge checks; searchable glossary.
 - **Workstation** — dark/light themes, command palette (`Ctrl/⌘ + K`), resizable inspector and engineering console (log, problems, calculation register), offline use and installable PWA.
 
 ## Install it
@@ -91,11 +92,11 @@ index.html, manifest.json, service-worker.js, version.json
 css/            main, dashboard, engineering, responsive
 js/
   app.js, router.js, database.js, project-manager.js, project-schema.js, state-manager.js, version.js
-  engineering/  units, provenance, atmosphere, requirements, configuration, geometry   (pure, tested models)
-  modules/      dashboard, projects, architecture, design-studio, settings, planned-module, module-registry, learning/
+  engineering/  units, provenance, atmosphere, requirements, configuration, geometry, components, catalogue, electrical   (pure, tested models)
+  modules/      dashboard, projects, architecture, design-studio, avionics, component-library, settings, planned-module, module-registry, learning/
   ui/           shell, inspector, bottom panel, command palette, dialogs, notifications, components, icons
   utils/        dom, events, ids, immutable data, diff, format, logger, preferences, file, PWA
-  visualisation/ plots, views2d (scale drawings), view3d (three.js model)
+  visualisation/ plots, views2d (scale drawings), view3d (three.js model), block-diagram
 vendor/three/   three.js 0.170.0 (MIT), see its README
 assets/icons/   app icons
 tests/          unit/, engineering/, integration/, regression/, e2e/
@@ -116,4 +117,8 @@ docs/           architecture, roadmap, engineering-models, data-model, ai-models
 
 ## Licence
 
-No licence has been chosen yet; all rights reserved by the repository owner until one is added.
+AEROLAB X is open source under the **Apache License 2.0** (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)). You may use, study, modify and redistribute it, including commercially. Keep the copyright and licence notices, and state the changes you make. The licence includes a patent grant from contributors and comes with no warranty.
+
+Third-party code keeps its own licence: three.js is MIT (`vendor/three/LICENSE`).
+
+To cite AEROLAB X in a publication, use [`CITATION.cff`](CITATION.cff); GitHub shows a "Cite this repository" button.

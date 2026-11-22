@@ -798,3 +798,196 @@ line.view2d__rotor--cruise {
 .chart-row > :only-child {
   max-width: 560px;
 }
+
+/* ---- Avionics Laboratory and Component Library (Build 3) ----------------------------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.toolbar__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 320px;
+}
+
+.toolbar__fields .input {
+  flex: 1 1 200px;
+}
+
+.requirement-list--compact {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+}
+
+.component-list {
+  display: grid;
+  gap: 8px;
+}
+
+.component {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+
+.component--error {
+  border-color: var(--danger);
+}
+
+.component--warning {
+  border-color: var(--warn);
+}
+
+.component__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.component__name {
+  font-weight: 600;
+}
+
+.component__body {
+  padding: 4px 12px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.component__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.connect-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 0 12px;
+  align-items: end;
+}
+
+.connect-form__button {
+  padding-bottom: 14px;
+}
+
+.bd-wrap {
+  overflow-x: auto;
+}
+
+.bd {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+}
+
+.bd text {
+  fill: var(--text-2);
+  font-size: 11px;
+  font-family: var(--font-sans);
+}
+
+.bd .bd__column {
+  fill: var(--text-3);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bd .bd__name {
+  fill: var(--text-1);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bd__box rect {
+  fill: var(--bg-3);
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+}
+
+.bd__box--power rect { stroke: var(--warn); }
+.bd__box--control rect { stroke: var(--accent); }
+.bd__box--warning rect { stroke: var(--warn); stroke-width: 2; stroke-dasharray: 5 3; }
+.bd__box--error rect { stroke: var(--danger); stroke-width: 2.4; }
+
+.bd__link {
+  fill: none;
+  stroke-width: 1.8;
+  opacity: 0.9;
+}
+
+.bd__link--power, .link-swatch--power { stroke: var(--danger); background: var(--danger); }
+.bd__link--uart, .link-swatch--uart { stroke: var(--info); background: var(--info); }
+.bd__link--i2c, .link-swatch--i2c { stroke: var(--accent); background: var(--accent); }
+.bd__link--spi, .link-swatch--spi { stroke: var(--accent-3); background: var(--accent-3); }
+.bd__link--can, .link-swatch--can { stroke: var(--ok); background: var(--ok); }
+.bd__link--pwm, .link-swatch--pwm { stroke: var(--warn); background: var(--warn); }
+.bd__link--usb, .link-swatch--usb { stroke: var(--text-2); background: var(--text-2); }
+.bd__link--ethernet, .link-swatch--ethernet { stroke: var(--text-3); background: var(--text-3); }
+
+.bd__link--power {
+  stroke-width: 2.6;
+}
+
+.bd__link--i2c,
+.bd__link--can {
+  stroke-dasharray: 6 3;
+}
+
+.link-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.bd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.budget-table td,
+.budget-table th {
+  vertical-align: middle;
+}
+
+.budget-use {
+  display: grid;
+  grid-template-columns: minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.budget-use--high .progress__bar { background: var(--warn); }
+.budget-use--over .progress__bar { background: var(--danger); }
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: var(--gap);
+}
+
+.kv--compact .kv__row {
+  padding: 2px 0;
+  font-size: var(--fs-xs);
+}
+
+.budget-use .mono {
+  white-space: nowrap;
+}

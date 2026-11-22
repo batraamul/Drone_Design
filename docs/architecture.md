@@ -157,7 +157,7 @@ Summarised here; details in `docs/deployment.md`. GitHub Actions runs every gate
 | Browser performance limits for simulation/AI | Unresponsive UI | Web Workers, WASM/WebGPU with capability checks, resource limits, graceful fallbacks |
 | Stale service-worker cache | Users stuck on old versions | Versioned caches, update prompt, single-version app shell, `?nosw` escape hatch |
 | Dependency or licence problems | Broken builds, compliance issues | Minimal dependencies, pinned and vendored with licences, lockfile, CI on every push |
-| Scope creep / unfinished modules | Unstable product | Twelve builds with explicit acceptance criteria; planned modules clearly labelled |
+| Scope creep / unfinished modules | Unstable product | Fifteen builds with explicit acceptance criteria; planned modules clearly labelled |
 | Session-to-session continuity | Rework, regressions | `PROJECT_STATE.md` protocol, changelog, automated gates |
 | Misuse beyond civilian scope | Harm | No weapon/targeting/attack features; AI isolated from physical controls; scope stated in the app |
 

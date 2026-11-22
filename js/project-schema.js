@@ -12,9 +12,10 @@ import { deepClone, isPlainObject } from './utils/immutable.js';
 import { APP_VERSION } from './version.js';
 import { REQUIREMENT_FIELDS, emptyRequirements, validateRequirementValue } from './engineering/requirements.js';
 import { defaultConfiguration, sanitizeConfiguration, validateConfiguration } from './engineering/configuration.js';
+import { emptyComponents, sanitizeComponents, validateComponents } from './engineering/components.js';
 
-/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (adds modules.configuration). */
-export const PROJECT_SCHEMA_VERSION = 2;
+/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (adds modules.configuration); 3 = Build 3 (adds modules.components). */
+export const PROJECT_SCHEMA_VERSION = 3;
 
 export const PROJECT_CATEGORIES = Object.freeze([
   {
@@ -148,7 +149,7 @@ export function createProject(init = {}, { now = new Date(), id } = {}) {
     tags: Array.isArray(init.tags) ? normaliseTags(init.tags) : [],
     requirements,
     notes: [],
-    modules: { configuration: defaultConfiguration(category) },
+    modules: { configuration: defaultConfiguration(category), components: emptyComponents() },
     createdAt: iso,
     updatedAt: iso,
     deletedAt: null,
@@ -225,6 +226,9 @@ export function validateProject(doc) {
     for (const item of validateConfiguration(doc.modules.configuration)) {
       error(item.path ? `modules.configuration.${item.path}` : 'modules.configuration', item.message);
     }
+    for (const item of validateComponents(doc.modules.components)) {
+      error(item.path ? `modules.components.${item.path}` : 'modules.components', item.message);
+    }
   }
   if (!isIsoDate(doc.createdAt)) error('createdAt', 'Invalid creation date');
   if (!isIsoDate(doc.updatedAt)) error('updatedAt', 'Invalid modification date');
@@ -294,6 +298,9 @@ export function sanitizeProject(input, { now = new Date() } = {}) {
   const config = sanitizeConfiguration(base.modules.configuration, base.category);
   base.modules.configuration = config.configuration;
   warnings.push(...config.warnings);
+  const components = sanitizeComponents(base.modules.components);
+  base.modules.components = components.components;
+  warnings.push(...components.warnings);
   if (isIsoDate(source.createdAt)) base.createdAt = source.createdAt;
   if (isIsoDate(source.updatedAt)) base.updatedAt = source.updatedAt;
   base.deletedAt = null;
@@ -312,6 +319,12 @@ export const MIGRATIONS = Object.freeze({
     const category = CATEGORY_MAP.has(doc.category) ? doc.category : 'multirotor';
     const { configuration } = sanitizeConfiguration(modules.configuration, category);
     return { ...doc, modules: { ...modules, configuration } };
+  },
+  /** 2 → 3: add the (empty) component list and connections. Existing module data is kept. */
+  2: (doc) => {
+    const modules = isPlainObject(doc.modules) ? doc.modules : {};
+    const { components } = sanitizeComponents(modules.components);
+    return { ...doc, modules: { ...modules, components } };
   },
 });
 

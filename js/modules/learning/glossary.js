@@ -3,6 +3,13 @@
  * each entry names the SI unit where one applies. Entries grow with every build.
  */
 export const GLOSSARY = Object.freeze([
+  { term: 'BEC (battery eliminator circuit)', definition: 'A regulator that supplies a low-voltage rail (typically 5 V) from the flight battery, so no separate receiver battery is needed. Also called a power module when it measures battery voltage and current.', aliases: ['power module', 'regulator', 'UBEC'] },
+  { term: 'Logic level', definition: 'The voltage that represents a digital "1" on a signal pin, typically 3.3 V or 5 V. Connecting a higher-level output to a lower-level input that is not tolerant of it can damage the input.', aliases: ['level shifter', '5 V tolerant'] },
+  { term: 'Power budget', definition: 'Table of every consumer on each supply rail and its worst-case current, compared with the rail rating, together with the total power drawn from the battery.', aliases: ['electrical budget', 'load budget'] },
+  { term: 'Quiescent current', definition: 'Current a regulator draws for itself with no load, in amperes (often milliamperes).', aliases: ['I_q'] },
+  { term: 'UART', definition: 'Universal asynchronous receiver-transmitter: a two-wire serial link (TX/RX) used for GNSS, telemetry radios, receivers and companion computers. Point-to-point: one device per port.', aliases: ['serial port', 'TELEM'] },
+  { term: 'I²C', definition: 'Two-wire bus (SDA, SCL) on which several devices share the same wires, each with its own address. Used for compasses, airspeed sensors and power monitors.', aliases: ['I2C', 'IIC'] },
+  { term: 'CAN bus', definition: 'Controller Area Network: a robust differential bus used for ESCs, GNSS and sensors on larger UAVs (for example with the DroneCAN protocol).', aliases: ['CAN', 'DroneCAN', 'UAVCAN'] },
   { term: 'Disc loading', definition: 'Rotor thrust divided by total rotor disc area, in pascals (N/m²). Lower disc loading means less induced power in hover.', aliases: ['DL'] },
   { term: 'Figure of merit', definition: 'Ratio of ideal (momentum-theory) hover power to actual rotor shaft power (dimensionless, below 1). Typically about 0.5–0.75 for small propellers.', aliases: ['FM', 'hover efficiency'] },
   { term: 'Mean aerodynamic chord (MAC)', definition: 'The chord of an equivalent rectangular wing with the same lift and pitching moment, used as the reference length for stability and CG position. Symbol c̄, in metres.', aliases: ['MAC', 'c-bar'] },

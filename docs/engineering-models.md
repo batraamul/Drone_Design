@@ -179,6 +179,75 @@ It also checks that every layout's default is valid and raises no warnings.
 
 Ideal hover power ignores every loss.
 
-## 6. Planned models (not implemented)
+## 6. Electrical architecture — `js/engineering/components.js`, `electrical.js`, `catalogue.js` (Build 3)
+
+**Data.** `project.modules.components = { items, connections }`.
+- Each component has a type, quantity, provenance (`illustrative`, `datasheet`, `user-input` or `measured`), a source reference, SI specifications and port counts.
+- Each connection is a power link or a data link (`uart`, `i2c`, `spi`, `can`, `pwm`, `usb`, `ethernet`).
+- Power links run from supplier to consumer.
+
+**Rails.**
+- Battery of n cells: [n V_cell,min, n V_cell,max] with nominal n V_cell,nom.
+
+  | Chemistry | min (V) | nominal (V) | max (V) |
+  |---|---|---|---|
+  | LiPo | 3.3 | 3.7 | 4.2 |
+  | LiPo HV | 3.3 | 3.8 | 4.35 |
+  | Li-ion | 2.8 | 3.6 | 4.2 |
+
+  The minima are loaded, near-empty values.
+- A regulator supplies [V_out, V_out].
+- A flight controller with an output within 0.5 V of its input is a pass-through: its rail equals its input rail and the current passes unchanged. Otherwise it is an on-board converter with an assumed η = 0.85.
+
+**Loads (worst case, all consumers at maximum at once).**
+
+| Quantity | Equation |
+|---|---|
+| Consumer current | I = I_max × quantity (ESC: the user's operating-current estimate × quantity) |
+| Converter input current | I_in = I_q + V_out ΣI_out / (η V_in,min) |
+| Battery current | I_batt = Σ input currents of everything on the battery |
+| Battery power | P_batt = I_batt V_nom |
+| Battery life at constant load | t = Q V_nom / P_batt (no reserve, ideal capacity) |
+
+**Checks.**
+
+| ID | Rule | Severity |
+|---|---|---|
+| AV-PWR-000 | Power connections form a loop | error |
+| AV-PWR-001 | V_rail,max > V_supply,max (over-voltage) | error |
+| AV-PWR-002 | V_rail,min < V_supply,min (brown-out risk) | warning |
+| AV-PWR-003 | ΣI_load > I_rated | error |
+| AV-PWR-004 | ΣI_load > 0.8 I_rated (derating guideline) | warning |
+| AV-PWR-005 | Consumer without a power connection | warning |
+| AV-PWR-006 | Power drawn from a part without an output | error |
+| AV-PWR-007 | ESC without a current estimate (propulsion excluded) | info |
+| AV-PWR-008 | More than one supply (back-feed caution) | info |
+| AV-IF-001 | Link kind missing on one end | error |
+| AV-IF-002 | Point-to-point links exceed available ports (PWM counts one channel per unit) | error |
+| AV-IF-003 | Logic levels differ and the lower-level input is not 5 V tolerant (UART, I²C, SPI, PWM) | error |
+| AV-IF-004 | ESC or peripheral without a data or control link | warning |
+| AV-DATA-001 | Datasheet or measured component without a source reference | warning |
+| AV-DATA-002 | Illustrative catalogue values in use | info |
+
+**Catalogue.**
+- Every built-in entry is named "Example …" and labelled `illustrative`, with typical rounded values.
+- No real product or manufacturer value is reproduced.
+- A test enforces both rules.
+
+**Verification.** `tests/engineering/electrical.test.mjs` checks:
+- battery rail limits;
+- the pass-through rail;
+- the power-module load (1.07 A) and input current 0.01 + 5.3 × 1.07/(0.9 × 13.2) A, by hand;
+- that ESC estimates enter the budget;
+- that every check fires on a minimal case;
+- that the example set is free of errors and warnings;
+- sanitisation.
+
+**Limitations.**
+- Steady-state, worst-case currents only. No transients, inrush, cable losses, regulator thermal limits or ground loops.
+- The motor current comes from the user's estimate until the propulsion models of Build 4.
+- The link budget and SDR visualisations follow in Build 7.
+
+## 7. Planned models (not implemented)
 
 Mass and CG budgets (Build 4/5), BLDC motor and propeller models (Build 4), battery equivalent-circuit model (Build 4), aerofoil and lift/drag estimates (Build 5), beam bending/torsion and vibration (Build 5), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.

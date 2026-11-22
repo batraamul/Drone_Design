@@ -284,8 +284,8 @@ function inputsLine(inputs, prefs) {
 export function checkCard(check, prefs, { compact = false } = {}) {
   const details = [
     h('p', { class: 'check__message' }, check.message),
-    h('p', { class: 'check__equation' }, h('span', { class: 'check__label' }, 'Equation'), h('code', null, check.equation)),
-    h('div', null, h('span', { class: 'check__label' }, 'Inputs'), inputsLine(check.inputs, prefs)),
+    check.equation ? h('p', { class: 'check__equation' }, h('span', { class: 'check__label' }, 'Equation'), h('code', null, check.equation)) : null,
+    check.inputs?.length ? h('div', null, h('span', { class: 'check__label' }, 'Inputs'), inputsLine(check.inputs, prefs)) : null,
     check.result
       ? h(
           'p',

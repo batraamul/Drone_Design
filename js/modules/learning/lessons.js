@@ -432,12 +432,101 @@ export const LESSONS = Object.freeze([
       'E. Torenbeek, Synthesis of Subsonic Airplane Design, Delft University Press, 1982 — appendix on planform geometry.',
     ],
   },
+  {
+    id: 'avionics-power-interfaces',
+    title: 'Avionics power budgets, regulators and logic levels',
+    icon: 'chip',
+    level: 'Electronics',
+    minutes: 15,
+    summary: 'How to supply every board at a safe voltage, size regulators with margin, and connect data links without damaging inputs.',
+    beginner: [
+      'Every electronic part on a drone needs power at the right voltage. The battery voltage swings from full to empty, and it is far too high for most boards, so regulators (power modules, BECs) convert it to steady 5 V or 12 V rails.',
+      'Each rail can only deliver so much current. Add up what is connected to it, keep a margin, and check that every part accepts the voltage it gets — at full charge and when the battery is nearly empty.',
+      'Data links have voltages too. Modern flight controllers use 3.3 V logic; an older 5 V sensor can damage a 3.3 V input unless the input is 5 V tolerant or a level shifter sits between them.',
+    ],
+    theory: [
+      'A battery of n cells in series supplies n·V_cell, where V_cell runs from about 4.2 V (full LiPo) down to about 3.3–3.5 V under load near empty. Every part connected directly to the battery must accept the whole range.',
+      'A switching regulator conserves power apart from its losses: V_in I_in η = V_out I_out. Its input current is therefore largest at the lowest input voltage: I_in = V_out I_out / (η V_in,min). Linear regulators instead pass the output current straight through (I_in ≈ I_out) and burn the difference as heat.',
+      'A rail is overloaded when the sum of its consumers’ worst-case currents exceeds the regulator rating. Designers usually keep continuous load below about 80 % of the rating to allow for heat, ageing and current spikes (for example radio transmit bursts).',
+      'Point-to-point interfaces (UART, SPI, PWM outputs, USB, Ethernet) need one port per device; buses (I²C, CAN) let several devices share one port, distinguished by address. When ports run out, move devices to a bus or use a controller with more ports.',
+      'Logic levels: a 5 V output driving a 3.3 V input pushes current through the input’s protection diodes and can destroy it, unless the input is specified as 5 V tolerant. Differential links (CAN, USB, Ethernet) have their own transceivers and do not have this problem.',
+    ],
+    equations: [
+      { expression: 'V_batt ∈ [n V_cell,min , n V_cell,max]', note: 'Battery voltage range (e.g. 4S LiPo: 13.2–16.8 V).' },
+      { expression: 'I_in = I_q + V_out I_out / (η V_in,min)', note: 'Switching regulator input current, worst case.' },
+      { expression: 'Σ I_load ≤ I_rated (guideline ≤ 0.8 I_rated)', note: 'Rail capacity with derating.' },
+      { expression: 't = Q V_nom / P', note: 'Time a battery can sustain a constant load (no reserve, ideal capacity).' },
+    ],
+    variables: [
+      { symbol: 'n', meaning: 'Cells in series', unit: '—' },
+      { symbol: 'V_cell', meaning: 'Cell voltage', unit: 'V' },
+      { symbol: 'η', meaning: 'Regulator efficiency', unit: '— (shown in %)' },
+      { symbol: 'I_q', meaning: 'Regulator quiescent current', unit: 'A' },
+      { symbol: 'I_rated', meaning: 'Rated continuous output current', unit: 'A' },
+      { symbol: 'Q', meaning: 'Battery capacity', unit: 'C (shown in mAh)' },
+      { symbol: 'P', meaning: 'Power drawn', unit: 'W' },
+    ],
+    example: () => {
+      const iout = 1.07;
+      const vmin = 4 * 3.3;
+      const iin = 0.01 + (5.3 * iout) / (0.9 * vmin);
+      const p = iin * 4 * 3.7;
+      const t = (5000 * 3.6 * 4 * 3.7) / p;
+      return {
+        title: 'The example quadcopter avionics',
+        steps: [
+          'The flight controller (0.30 A) passes 5.3 V to the receiver (0.12 A), GNSS (0.15 A) and telemetry radio (0.50 A): the 5.3 V power module carries 1.07 A of its 3 A rating (36 %).',
+          `Its input current at the lowest 4S voltage (13.2 V), with η = 0.9 and I_q = 10 mA: I_in = 0.01 + 5.3 × 1.07 / (0.9 × 13.2) = ${n(iin, 3)} A.`,
+          `At the nominal 14.8 V that is ${n(p, 3)} W from the battery.`,
+          `A 5000 mAh 4S pack stores 5 Ah × 14.8 V = 74 Wh, so the avionics alone would run for about ${n(t / 60, 3)} min. The motors draw far more: that is the propulsion budget of Build 4.`,
+          'Check of voltages: every 5 V device accepts 4.5–5.5 V, so the 5.3 V rail is fine; the ESCs accept 7–26 V, so 13.2–16.8 V is fine.',
+        ],
+      };
+    },
+    calculator: 'regulator',
+    practical: [
+      'Use maximum (not typical) currents from datasheets, and check transmit bursts of radios and boot surges of computers.',
+      'Give power-hungry payloads and companion computers their own regulator, so a brown-out cannot reset the flight controller.',
+      'Keep GNSS and compass away from high-current wiring; route power and signal grounds deliberately.',
+      'Measure the real currents on the bench and record them with provenance “measured”.',
+    ],
+    mistakes: [
+      'Connecting a 5 V-only board straight to the battery.',
+      'Forgetting that the regulator input current rises as the battery empties.',
+      'Running out of UARTs late in the design: plan the ports early.',
+      'Wiring a 5 V sensor to a 3.3 V I²C bus without checking 5 V tolerance.',
+    ],
+    quiz: [
+      {
+        question: 'A 6S LiPo can supply a voltage between about:',
+        options: ['3.3 and 4.2 V', '11 and 13 V', '19.8 and 25.2 V', '22 and 30 V'],
+        answer: 2,
+        explanation: '6 × 3.3 V = 19.8 V near empty under load; 6 × 4.2 V = 25.2 V fully charged.',
+      },
+      {
+        question: 'A 90 %-efficient regulator supplies 5 V at 2 A from a 10 V input. Its input current is about:',
+        options: ['0.9 A', '1.1 A', '2.0 A', '2.2 A'],
+        answer: 1,
+        explanation: 'I_in = 5 × 2 / (0.9 × 10) = 1.11 A (ignoring quiescent current).',
+      },
+      {
+        question: 'Which link is NOT at risk from a 5 V / 3.3 V logic mismatch?',
+        options: ['UART', 'I²C', 'PWM', 'CAN'],
+        answer: 3,
+        explanation: 'CAN uses differential transceivers with their own specified levels; the others connect logic pins directly.',
+      },
+    ],
+    references: [
+      'P. Horowitz, W. Hill, The Art of Electronics, 3rd ed., Cambridge University Press, 2015 — chapter 9 (voltage regulation).',
+      'NXP UM10204, I²C-bus specification and user manual, rev. 7.0, 2021 — electrical characteristics.',
+    ],
+  },
 ]);
 
 export const LEARNING_PATHS = Object.freeze([
   { title: 'Engineering foundations', lessons: ['data-provenance', 'si-units', 'standard-atmosphere'], status: 'available' },
   { title: 'UAV configuration fundamentals', lessons: ['rotor-layout-hover', 'wing-planform-tail'], status: 'available' },
-  { title: 'Electronics, flight controllers and avionics', build: 3 },
+  { title: 'Electronics, flight controllers and avionics', lessons: ['avionics-power-interfaces'], status: 'available' },
   { title: 'RF links and software-defined radio', build: 3 },
   { title: 'Power electronics, motors and batteries', build: 4 },
   { title: 'Aerodynamics and structures', build: 5 },

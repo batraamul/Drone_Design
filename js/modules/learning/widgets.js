@@ -361,10 +361,56 @@ function planformCalculator() {
   );
 }
 
+// ---- Regulator input current and battery life ------------------------------------------
+
+function regulatorCalculator() {
+  const state = { cells: '4', capacity: '5000', vout: '5.3', iout: '1.07', eta: '90', iq: '10' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('rg')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || !Number.isInteger(v.cells.value) || v.cells.value < 1 || v.cells.value > 24 || v.capacity.value <= 0 || v.vout.value <= 0 || v.iout.value < 0 || v.eta.value <= 0 || v.eta.value > 100 || v.iq.value < 0) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter 1–24 cells, positive capacity and output voltage, a non-negative output current and an efficiency of 1–100 %.'));
+      return;
+    }
+    const eta = v.eta.value / 100;
+    const iq = toSI(v.iq.value, 'mA');
+    const vmin = v.cells.value * 3.3;
+    const vmax = v.cells.value * 4.2;
+    const vnom = v.cells.value * 3.7;
+    const iinWorst = iq + (v.vout.value * v.iout.value) / (eta * vmin);
+    const iinNom = iq + (v.vout.value * v.iout.value) / (eta * vnom);
+    const power = iinNom * vnom;
+    const energy = toSI(v.capacity.value, 'mAh') * vnom;
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Battery voltage range', `${n(vmin, 4)} – ${n(vmax, 4)} V`, `${v.cells.value}S LiPo (3.3–4.2 V/cell)`],
+          ['Regulator input current (worst case)', `${n(iinWorst * 1000, 4)} mA`, `at ${n(vmin, 3)} V`],
+          ['Regulator input current (nominal)', `${n(iinNom * 1000, 4)} mA`, `at ${n(vnom, 3)} V`],
+          ['Power from the battery', `${n(power, 4)} W`, provenanceBadge('analytical')],
+          ['Battery life at this load', `${n(fromSI(energy / Math.max(power, 1e-12), 'h'), 4)} h`, 'no reserve, ideal capacity'],
+        ],
+        'Regulator calculation result',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('cells', 'Cells in series n', ''), make('capacity', 'Capacity Q', 'mAh'), make('vout', 'Output voltage V_out', 'V'), make('iout', 'Output current I_out', 'A'), make('eta', 'Efficiency η', '%'), make('iq', 'Quiescent current I_q', 'mA')),
+    output,
+    h('p', { class: 'calc__note' }, 'Switching regulator, constant load. Real batteries deliver less than their rated capacity.'),
+  );
+}
+
 export const WIDGETS = Object.freeze({
   uncertainty: uncertaintyCalculator,
   units: unitConverter,
   isa: isaCalculator,
   hover: hoverCalculator,
   planform: planformCalculator,
+  regulator: regulatorCalculator,
 });

@@ -2,6 +2,32 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-11-22 — Build 3: Avionics and electronics
+
+### Added
+
+- **Avionics Laboratory** (partial; link budget and SDR in Build 7):
+  - add components from the library, add your own with a datasheet source, or start from an example quadcopter set;
+  - connect power and data (UART, I²C, SPI, CAN, PWM/DShot, USB, Ethernet);
+  - an auto-laid-out block diagram with colour-coded links and outlined problems;
+  - a component editor for SI specifications, quantity, ports, provenance and source.
+- **Electrical model** (`js/engineering/electrical.js`):
+  - battery and regulator rails, and the pass-through flight-controller rail;
+  - worst-case power budget per rail with utilisation, and converter input current at the lowest input voltage;
+  - battery current, power and life;
+  - checks for over-voltage, under-voltage, overload, 80 % derating, unpowered parts, power loops, missing ports, port overuse, 3.3 V/5 V logic mismatch, unconnected devices and unsourced data.
+
+  The checks feed the design review, the inspector and the Problems panel.
+- **Component Library** (partial; motors and propellers in Build 4): 20 illustrative "Example …" parts with search, type filter and "Add to project". There is no real product data; a test enforces this.
+- Project schema **v3**: `modules.components`, with the 2→3 migration and import repair.
+- Lesson "Avionics power budgets, regulators and logic levels" with a regulator and battery-life calculator, and 7 glossary terms.
+- **Apache-2.0 licence** (`LICENSE`, `NOTICE`) and `CITATION.cff`.
+- Roadmap Builds **13** (Stratospheric Sounding Laboratory), **14** (defence-style assurance with civilian scope) and **15** (open publication for IEEE Transactions). The Stratospheric Sounding Lab appears as a planned module.
+
+### Changed
+
+- Engineering checks without an equation or inputs no longer show empty sections.
+
 ## [0.3.0] — 2026-11-22 — Build 2: Configuration and 3D design
 
 ### Added

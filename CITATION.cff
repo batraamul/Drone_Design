@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use AEROLAB X in research or teaching, please cite it as below."
+title: "AEROLAB X — Drone Design, Intelligence & Simulation Studio"
+abstract: >-
+  Open-source, browser-based engineering workstation for the conceptual design,
+  analysis and documentation of civilian UAVs and micro aerial vehicles, with
+  documented, tested models and explicit data provenance.
+type: software
+authors:
+  - family-names: Batra
+    given-names: Amul
+    affiliation: "India Meteorological Department, Ministry of Earth Sciences"
+license: Apache-2.0
+repository-code: "https://github.com/batraamul/Drone_Design"
+url: "https://batraamul.github.io/Drone_Design/"
+keywords:
+  - UAV design
+  - unmanned aerial vehicles
+  - engineering education
+  - conceptual design
+  - digital twin
+version: 0.4.0
+date-released: 2026-11-22
