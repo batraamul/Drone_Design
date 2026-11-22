@@ -6,7 +6,8 @@ import { h } from '../utils/dom.js';
 import { icon } from '../ui/icons.js';
 import { badge, button, card, emptyState, formatQuantity, keyValueList, pageHeader, progressBar, severityIcon } from '../ui/components.js';
 import { categoryInfo, applicationInfo, stageInfo } from '../project-schema.js';
-import { REQUIREMENT_FIELDS } from '../engineering/requirements.js';
+import { REQUIREMENT_FIELDS, reviewSummary } from '../engineering/requirements.js';
+import { installCard, isInstalled } from '../ui/install.js';
 import { BUILDS, MODULES, buildStatus } from './module-registry.js';
 import { storageStatus } from '../database.js';
 import { formatBytes, formatRelative } from '../utils/format.js';
@@ -107,6 +108,7 @@ function reviewCard(ctx) {
           ['info', 'Notes'],
         ].map(([severity, label]) => h('div', { class: ['review-count', `review-count--${severity}`] }, severityIcon(severity, 16), h('span', { class: 'review-count__value' }, String(counts[severity])), h('span', { class: 'review-count__label' }, label))),
       ),
+      h('p', { class: 'summary-sentence' }, reviewSummary(evaluation)),
       evaluation.checks.length
         ? h('ul', { class: 'review-list' }, evaluation.checks.slice(0, 4).map((check) => h('li', null, severityIcon(check.severity, 14), h('span', null, check.title))))
         : h('p', { class: 'muted' }, evaluation.completeness.set ? 'No conflicts between the requirements set so far.' : 'Set requirements to start the review.'),
@@ -166,10 +168,11 @@ function dataSafetyCard(ctx, status) {
   return card({
     title: 'Data safety',
     icon: 'database',
-    description: 'Projects are stored only in this browser until you export them.',
+    description: ctx.drive.enabled ? 'Projects are synced to the JSON files in your Google Drive.' : 'Projects are only in this browser. Turn on Google Drive sync to keep them in your Drive.',
     body: [
       keyValueList([
-        ['Storage', projects ? 'IndexedDB (this browser)' : 'Unavailable'],
+        ['Storage', projects ? 'This browser (working copy)' : 'Unavailable'],
+        ['Google Drive sync', ctx.drive.enabled ? `${ctx.drive.state === 'ok' ? 'On' : 'On — needs attention'}${ctx.drive.lastSync ? `, last synced ${formatRelative(new Date(ctx.drive.lastSync).toISOString())}` : ''}` : 'Off'],
         ['Persistent', status.persisted === null ? 'Unknown' : status.persisted ? 'Yes — protected from automatic eviction' : 'Not granted — the browser may clear data under storage pressure'],
         ['Used', status.usage === null ? '—' : `${formatBytes(status.usage)}${status.quota ? ` of ${formatBytes(status.quota)} available` : ''}`],
         ['Last full backup', lastBackup ? formatRelative(lastBackup) : 'Never'],
@@ -198,6 +201,39 @@ function scopeCard() {
   });
 }
 
+function gettingStartedCard(ctx, list) {
+  const { store, drive, router, actions } = ctx;
+  const evaluation = ctx.engineering.evaluate();
+  const steps = [
+    { done: list.length > 0, title: 'Create a project', text: 'A project holds one aircraft design: its targets, notes and saved versions.', action: () => actions.newProject(), label: 'New project' },
+    { done: Boolean(store.doc) && evaluation.completeness.set >= 3, title: 'Enter the design targets', text: 'Mass, payload, endurance, range, speed, altitude and wind. Use any units; they are converted for you.', action: () => (store.doc ? router.navigate('projects', [store.doc.id], { tab: 'requirements' }) : router.navigate('projects')), label: 'Open targets' },
+    { done: Boolean(store.doc) && evaluation.completeness.set >= 3, title: 'Read the design review', text: 'Green means the targets fit together; amber or red items explain the calculation and how to fix it.', action: () => ctx.shell.revealInspector(), label: 'Show review' },
+    { done: drive.enabled && drive.state === 'ok', title: 'Turn on Google Drive sync', text: 'Keeps your projects as a JSON file in your Drive and merges changes from every computer you use.', action: () => router.navigate('settings'), label: 'Set up sync' },
+    { done: isInstalled(), title: 'Install the app (optional)', text: 'Gives AEROLAB X its own window and icon; it keeps working offline and updates itself.', action: () => router.navigate('settings'), label: 'How to install' },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  if (doneCount === steps.length) return null;
+  return card({
+    title: 'Getting started',
+    icon: 'roadmap',
+    class: 'span-2',
+    description: `${doneCount} of ${steps.length} steps done. This guide disappears when all are done.`,
+    body: h(
+      'ol',
+      { class: 'steps-guide' },
+      steps.map((step) =>
+        h(
+          'li',
+          { class: ['steps-guide__item', step.done ? 'steps-guide__item--done' : null] },
+          h('span', { class: 'steps-guide__mark' }, icon(step.done ? 'checkCircle' : 'chevronRight', { size: 18 })),
+          h('div', { class: 'steps-guide__text' }, h('p', { class: 'steps-guide__title' }, step.title), h('p', { class: 'muted' }, step.text)),
+          step.done ? h('span', { class: 'badge badge--success' }, 'Done') : button({ label: step.label, size: 'sm', onClick: step.action }),
+        ),
+      ),
+    ),
+  });
+}
+
 export async function mount(container, ctx) {
   const { projects, store } = ctx;
   const [list, versions, status] = await Promise.all([
@@ -205,23 +241,27 @@ export async function mount(container, ctx) {
     projects && store.doc ? projects.listVersions().catch(() => []) : [],
     storageStatus(),
   ]);
+  const install = isInstalled() ? null : installCard();
   const render = () =>
     container.replaceChildren(
-      pageHeader({ title: 'Dashboard', icon: 'dashboard', subtitle: 'Engineering overview of the open project and the workstation.' }),
+      pageHeader({ title: 'Dashboard', icon: 'dashboard', subtitle: 'Your open project, its design review, and the state of your data at a glance.' }),
       h(
         'div',
         { class: 'page-grid dashboard-grid' },
+        gettingStartedCard(ctx, list),
         currentProjectCard(ctx, versions.length),
         requirementsCard(ctx),
         reviewCard(ctx),
         recentCard(ctx, list),
         roadmapCard(),
         dataSafetyCard(ctx, status),
+        install?.element,
         scopeCard(),
       ),
     );
   render();
-  const offs = [store.on('change', ({ record }) => record && render()), store.on('load', () => ctx.router.resolve())];
+  const offs = [store.on('change', ({ record }) => record && render()), store.on('load', () => ctx.router.resolve()), ctx.drive.on('state', () => render())];
+  if (install) offs.push(install.destroy);
   if (projects) offs.push(projects.on('projects-changed', () => ctx.router.resolve()));
   return () => offs.forEach((off) => off());
 }

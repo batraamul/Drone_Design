@@ -328,3 +328,15 @@ export function evaluateRequirements(requirements) {
 }
 
 export const SEVERITY_ORDER = Object.freeze({ error: 0, warning: 1, info: 2 });
+
+/** One plain-English sentence summarising the requirement review (for beginners). */
+export function reviewSummary(evaluation) {
+  const { checks, completeness } = evaluation;
+  const errors = checks.filter((c) => c.severity === 'error').length;
+  const warnings = checks.filter((c) => c.severity === 'warning').length;
+  if (completeness.set === 0) return 'No targets yet. Enter what the aircraft must achieve (mass, endurance, range, speed…) and AEROLAB X will check that the targets fit together.';
+  if (errors) return `${errors} target${errors === 1 ? ' is' : 's are'} impossible as written. Open the red item below to see why and what to change.`;
+  if (warnings) return `${warnings} target${warnings === 1 ? ' does' : 's do'} not fit with the others. Open the amber item below for the calculation and a suggested fix.`;
+  if (completeness.set < completeness.total) return `The ${completeness.set} targets entered so far are consistent. Add the remaining ${completeness.total - completeness.set} for a fuller check.`;
+  return 'All targets are consistent with each other. Later builds will check whether a concrete design can meet them.';
+}

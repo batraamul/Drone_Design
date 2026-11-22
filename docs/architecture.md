@@ -20,7 +20,7 @@ This document is the architecture proposal requested by the master development p
 1. **Engineering correctness before features.** Every model is documented (equations, assumptions, validity range, references) and unit-tested against reference data.
 2. **Transparent fidelity.** Every value carries a provenance label (requirement, user input, assumption, illustrative, datasheet, conceptual estimate, analytical, simulation, measured, validated). Preliminary estimates are never presented as certified analysis, CFD, FEA, flight approval or regulatory authorisation. There is no "flight-ready" state.
 3. **One project model.** All modules read and write the same project document; dependent results recompute automatically.
-4. **Local-first and private.** Data stays in the browser (IndexedDB) unless the user exports it. No external services or AI APIs are needed.
+4. **Local-first, owner-controlled sync.** The browser keeps a working copy (IndexedDB) so the app is instant and offline. Optional Google Drive sync (0.2.0, same design as E-Diary) keeps one JSON copy per device in the user's own Drive and merges them three-way. No other external services or AI APIs are needed.
 5. **Data preservation.** Application updates never delete user data; risky operations snapshot first; concurrent edits are detected, not silently overwritten.
 6. **Civilian scope.** No weapon, targeting, weapon-release, autonomous-attack or harmful-payload functions. AI and autonomy remain inside the simulation and are never connected to physical flight controls.
 7. **Honest UI.** No non-functional buttons, no fake data presented as real, no placeholder module presented as complete. Planned modules say so.
@@ -132,7 +132,7 @@ See `docs/ai-models.md`. In short: classical filters and planners are implemente
 
 ## 9. Security and privacy
 
-- Strict Content-Security-Policy (`script-src 'self'`, `style-src 'self'`, no inline code, `object-src 'none'`); the only external origin allowed is the hosted app's own GitHub Pages origin (for update checks from local copies).
+- Strict Content-Security-Policy (no inline code, `object-src 'none'`). External origins allowed: Google Identity Services (`accounts.google.com/gsi`) and the Google Drive API (`www.googleapis.com`) for opt-in sync, and the hosted app's own origin for update checks. Drive access uses the `drive.file` scope: AEROLAB X sees only the files it created.
 - No telemetry, analytics or third-party requests.
 - Imported files are size-limited, parsed as JSON, migrated, sanitised and validated before storage; nothing from them is rendered as HTML.
 

@@ -2177,3 +2177,56 @@ a.chip:hover {
     box-shadow: none;
   }
 }
+
+/* ---- Google Drive sync chip and settings ------------------------------------- */
+.sync-chip[data-state='ok'] .save-state__dot {
+  background: var(--ok);
+}
+
+.sync-chip[data-state='syncing'] .save-state__dot {
+  background: var(--accent);
+  animation: pulse 0.9s ease-in-out infinite;
+}
+
+.sync-chip[data-state='signin'] .save-state__dot,
+.sync-chip[data-state='blocked'] .save-state__dot,
+.sync-chip[data-state='offline'] .save-state__dot {
+  background: var(--warn);
+}
+
+.sync-chip[data-state='error'] {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.sync-chip[data-state='error'] .save-state__dot {
+  background: var(--danger);
+}
+
+.sync-status-panel__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.plain-list {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+  color: var(--text-2);
+}
+
+.plain-list li {
+  margin-bottom: 4px;
+}
+
+.sync-erase,
+.install-more {
+  margin-top: 12px;
+}
+
+.sync-erase summary,
+.install-more summary {
+  cursor: pointer;
+  color: var(--text-2);
+}

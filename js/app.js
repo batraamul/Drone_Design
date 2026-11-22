@@ -17,6 +17,10 @@ import { InspectorPanel } from './ui/inspector.js';
 import { BottomPanel } from './ui/bottom-panel.js';
 import { CommandPalette } from './ui/command-palette.js';
 import { UpdateManager } from './utils/pwa.js';
+import { DriveSync } from './sync/gdrive.js';
+import { watchInstall } from './ui/install.js';
+import { SYNC_LABELS } from './modules/sync-settings.js';
+import { formatRelative } from './utils/format.js';
 import { confirmDialog, openDialog, promptDialog } from './ui/dialog.js';
 import { emptyState, button } from './ui/components.js';
 import { h, $ } from './utils/dom.js';
@@ -333,6 +337,7 @@ async function boot() {
   const router = new Router();
   const pwa = new UpdateManager({ log });
 
+  watchInstall();
   window.addEventListener('error', (event) => log.error('runtime', event.message || 'Unexpected error'));
   window.addEventListener('unhandledrejection', (event) => log.error('runtime', event.reason?.message ?? String(event.reason)));
 
@@ -374,6 +379,8 @@ async function boot() {
     ctx.projects.setAutosave({ enabled: prefs.get('autosave'), delay: prefs.get('autosaveDelay') });
   }
 
+  ctx.drive = new DriveSync(ctx);
+
   store.define('requirements', {
     deps: ['requirements'],
     compute: (requirements) => evaluateRequirements(requirements),
@@ -389,6 +396,25 @@ async function boot() {
   ctx.bottomPanel = new BottomPanel(ctx);
   ctx.shell.applyLayout();
   ctx.inspector.render();
+
+  // ---- Google Drive sync chip in the top bar ----------------------------------------
+  const chip = $('#sync-status');
+  const paintChip = () => {
+    const { drive } = ctx;
+    const state = drive.enabled ? drive.state : 'off';
+    chip.dataset.state = state;
+    const label = state === 'ok' && drive.lastSync ? `synced ${formatRelative(new Date(drive.lastSync).toISOString())}` : SYNC_LABELS[state]?.[0].toLowerCase() ?? state;
+    $('#sync-status-text').textContent = `Drive: ${label}`;
+    chip.title = state === 'off' ? 'Google Drive sync is off. Click to set it up.' : drive.error || `Google Drive sync: ${label}. Click to sync now.`;
+  };
+  chip.addEventListener('click', () => {
+    if (!ctx.drive.enabled) ctx.router.navigate('settings');
+    else ctx.drive.sync('manual');
+  });
+  ctx.drive.on('state', paintChip);
+  ctx.drive.on('config', paintChip);
+  setInterval(paintChip, 60000);
+  paintChip();
 
   const { projects } = ctx;
   if (projects) {
@@ -504,6 +530,7 @@ async function boot() {
   }
 
   router.start();
+  ctx.drive.start();
   $('#app').setAttribute('aria-busy', 'false');
   document.body.dataset.appReady = 'true';
   log.info('app', `${APP_NAME} ${APP_VERSION} (Build ${BUILD_NUMBER}) ready`);

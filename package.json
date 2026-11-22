@@ -1,6 +1,6 @@
 {
   "name": "aerolab-x",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "AEROLAB X — Drone Design, Intelligence & Simulation Studio. A local-first engineering workstation for civilian UAVs and micro aerial vehicles.",
   "type": "module",

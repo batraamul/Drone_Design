@@ -12,6 +12,8 @@ import { formatBytes, formatDateTime, formatRelative } from '../utils/format.js'
 import { APP_VERSION, BUILD_NAME, BUILD_NUMBER, CANONICAL_URL, REPOSITORY_URL } from '../version.js';
 import { UpdateManager } from '../utils/pwa.js';
 import { SHORTCUTS } from '../ui/shell.js';
+import { syncCard } from './sync-settings.js';
+import { installCard } from '../ui/install.js';
 
 function radioGroup({ name, legend, options, value, onChange }) {
   const group = h(
@@ -131,7 +133,7 @@ async function storageCard(ctx) {
   return card({
     title: 'Data and storage',
     icon: 'database',
-    description: 'Projects live only in this browser (IndexedDB) unless you export them. Application updates never delete them.',
+    description: 'This browser keeps a working copy of your projects (IndexedDB). Turn on Google Drive sync above to keep the shared copy in your Drive. Application updates never delete projects.',
     body: [
       keyValueList([
         ['Database', db ? `${DB_NAME} · schema version ${db.version}` : 'Unavailable'],
@@ -234,11 +236,17 @@ function shortcutsCard() {
 
 export async function mount(container, ctx) {
   const [storage, application] = await Promise.all([storageCard(ctx), applicationCard(ctx)]);
+  const sync = syncCard(ctx);
+  const install = installCard();
   container.replaceChildren(
-    pageHeader({ title: 'Settings', icon: 'sliders', subtitle: 'Preferences are stored in this browser.', badges: [badge(`v${APP_VERSION}`, 'neutral')] }),
-    h('div', { class: 'page-grid' }, appearanceCard(ctx), unitsCard(ctx), autosaveCard(ctx), storage, application, shortcutsCard(), scopeCard()),
+    pageHeader({ title: 'Settings', icon: 'sliders', subtitle: 'Google Drive sync, installation, appearance, units, saving and updates.', badges: [badge(`v${APP_VERSION}`, 'neutral')] }),
+    h('div', { class: 'page-grid' }, sync.element, install.element, appearanceCard(ctx), unitsCard(ctx), autosaveCard(ctx), storage, application, shortcutsCard(), scopeCard()),
     h('p', { class: 'page-footnote' }, icon('info', { size: 14 }), ` Open source repository: `, linkButton({ href: REPOSITORY_URL, label: 'batraamul/Drone_Design', external: true, size: 'sm', variant: 'ghost' })),
   );
   const off = ctx.pwa.on('state', () => ctx.router.resolve());
-  return off;
+  return () => {
+    off();
+    sync.destroy();
+    install.destroy();
+  };
 }

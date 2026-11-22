@@ -35,7 +35,7 @@ test('launches without console errors and lists all 20 modules', async ({ page }
   await expect(page).toHaveTitle('Dashboard — AEROLAB X');
   await expect(page.locator('#sidenav .nav-item')).toHaveCount(20);
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
-  await expect(page.locator('#brand-build')).toHaveText('Build 1 · v0.1.0');
+  await expect(page.locator('#brand-build')).toHaveText(/^Build \d+ · v\d+\.\d+\.\d+$/);
   expect(errors).toEqual([]);
 });
 
@@ -281,4 +281,30 @@ test('interactive controls have accessible names', async ({ page }) => {
     );
     expect(unnamed, `unnamed controls on ${hash}`).toEqual([]);
   }
+});
+
+test('Google Drive sync card guides set-up and the getting-started guide tracks progress', async ({ page }) => {
+  const errors = collectErrors(page);
+  await openApp(page);
+  await expect(page.locator('#sync-status-text')).toHaveText('Drive: off');
+  const guide = page.locator('section.card', { has: page.getByRole('heading', { name: 'Getting started', exact: true }) });
+  await expect(guide).toContainText('0 of 5 steps done');
+  await createProject(page, 'Guide Test');
+  await page.goto('./#/dashboard');
+  await expect(guide).toContainText('1 of 5 steps done');
+
+  await page.locator('#sync-status').click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+  const sync = page.locator('section.card', { has: page.getByRole('heading', { name: 'Google Drive sync', exact: true }) });
+  const clientId = sync.getByLabel('1. Your Google OAuth Client ID');
+  await clientId.fill('not-a-client-id');
+  await clientId.blur();
+  await expect(sync.locator('.field__error').first()).toContainText('does not look like a Client ID');
+  await clientId.fill('');
+  await clientId.blur();
+  await sync.getByRole('button', { name: 'Connect Google Drive and sync' }).click();
+  await expect(sync).toContainText('Needs set-up');
+  await expect(sync).toContainText('Paste a valid OAuth Client ID first');
+  await expect(page.locator('section.card', { has: page.getByRole('heading', { name: 'Install the app', exact: true }) })).toContainText('Ubuntu / Kali Linux');
+  expect(errors).toEqual([]);
 });

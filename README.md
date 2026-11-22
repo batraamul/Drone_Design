@@ -2,7 +2,7 @@
 
 **Drone Design, Intelligence & Simulation Studio** — a modular, local-first engineering workstation for civilian UAVs and micro aerial vehicles: configuration, avionics, propulsion, energy, aerodynamics, structures, flight dynamics, mission planning, simulation, AI and engineering documentation, built around one shared project model.
 
-> **Status: Build 1 of 12 (Foundation), version 0.1.0.** The shell, project management, local persistence, engineering foundations and part of the Learning Centre are complete. Other modules are labelled *Planned* in the app and perform no calculations yet. See [`docs/roadmap.md`](docs/roadmap.md).
+> **Status: Build 1 of 12 (Foundation), version 0.2.0 (adds Google Drive sync).** The shell, project management, local persistence, engineering foundations and part of the Learning Centre are complete. Other modules are labelled *Planned* in the app and perform no calculations yet. See [`docs/roadmap.md`](docs/roadmap.md).
 
 Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
@@ -13,6 +13,29 @@ Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 - **Standard atmosphere** — ISA (U.S. Standard Atmosphere 1976) to 86 km, validated against the published tables; air properties at the operating altitude.
 - **Learning Centre** — lessons on data provenance and model fidelity, SI units, and the standard atmosphere, with calculators and knowledge checks; searchable glossary.
 - **Workstation** — dark/light themes, command palette (`Ctrl/⌘ + K`), resizable inspector and engineering console (log, problems, calculation register), offline use and installable PWA.
+
+## Install it
+
+Open **https://batraamul.github.io/Drone_Design/** and install it from the browser. No download or administrator rights are needed; it gets its own window and icon, works offline, and updates itself whenever a new version is published here.
+
+| System | How |
+|---|---|
+| Windows | Chrome or Edge → install icon at the right of the address bar (or menu → *Install AEROLAB X*) |
+| macOS | Chrome or Edge as above; Safari (macOS 14+) → File → *Add to Dock* |
+| Ubuntu / Kali Linux | Chrome or Chromium → install icon in the address bar |
+| Android / iPhone | Chrome → *Install app*; Safari → Share → *Add to Home Screen* |
+
+Settings → *Install the app* has a one-click install button where the browser supports it.
+
+## Your data in Google Drive (multi-device sync)
+
+Like E-Diary, AEROLAB X can keep your projects as JSON files in **your own Google Drive** and merge changes made on different computers:
+
+1. Settings → **Google Drive sync** → paste your Google OAuth Client ID (the same one E-Diary uses; its *Authorized JavaScript origins* must include `https://batraamul.github.io`, and the Google Drive API must be enabled in that Google Cloud project).
+2. Give this device a name (e.g. *Office PC*) and click **Connect Google Drive and sync**.
+3. Repeat on each computer. Each device writes `AEROLAB X — <device>.json` in the Drive folder *AEROLAB X sync* and merges the others item by item: edits on different computers are combined, the later edit wins on the same field, deleted items stay deleted, nothing is lost.
+
+The browser keeps a working copy so the app opens instantly and works offline; changes go to Drive a few seconds later. On a shared computer, **Erase this browser's copy** removes it once everything is in Drive.
 
 ## Engineering honesty
 

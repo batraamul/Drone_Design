@@ -12,7 +12,7 @@
  *  - The worker never touches IndexedDB: user projects survive every update.
  */
 const APP_PREFIX = 'aerolab-x';
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const BUILD_ID = 'dev';
 const CACHE_NAME = `${APP_PREFIX}-v${VERSION}-${BUILD_ID}`;
 
@@ -49,6 +49,7 @@ const PRECACHE_URLS = [
   './js/modules/planned-module.js',
   './js/modules/projects.js',
   './js/modules/settings.js',
+  './js/modules/sync-settings.js',
   './js/modules/learning/glossary.js',
   './js/modules/learning/index.js',
   './js/modules/learning/lessons.js',
@@ -59,8 +60,11 @@ const PRECACHE_URLS = [
   './js/ui/dialog.js',
   './js/ui/icons.js',
   './js/ui/inspector.js',
+  './js/ui/install.js',
   './js/ui/notifications.js',
   './js/ui/shell.js',
+  './js/sync/gdrive.js',
+  './js/sync/merge.js',
   './js/utils/diff.js',
   './js/utils/dom.js',
   './js/utils/events.js',

@@ -424,3 +424,56 @@
   gap: 10px;
   font-size: var(--fs-sm);
 }
+
+/* ---- Getting-started guide ----------------------------------------------------- */
+.steps-guide {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps-guide__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+
+.steps-guide__item--done {
+  opacity: 0.7;
+}
+
+.steps-guide__mark {
+  display: flex;
+  color: var(--accent-text);
+}
+
+.steps-guide__item--done .steps-guide__mark {
+  color: var(--ok);
+}
+
+.steps-guide__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.steps-guide__text .muted {
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+.summary-sentence {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+}

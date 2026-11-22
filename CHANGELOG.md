@@ -2,6 +2,16 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] — 2026-11-22 — Build 1.1: Google Drive sync and usability
+
+### Added
+
+- **Google Drive sync** (same design as E-Diary): sign in with your own OAuth Client ID (scope `drive.file`); each device keeps its copy as a JSON file in the Drive folder "AEROLAB X sync"; copies from all devices are merged item by item (three-way merge: edits on different devices are combined, the later edit wins on the same field, deletions stay deleted, nothing is lost). Syncs a few seconds after each change, every two minutes, on returning to the tab and when back online. Top-bar chip shows the sync state.
+- **Erase this browser's copy**: once everything is in Google Drive, a shared computer can keep nothing; the data comes back at the next sign-in.
+- **Install the app** card with a one-click install button where the browser supports it and instructions for Windows, macOS, Ubuntu/Kali Linux, Android and iOS.
+- **Getting started** checklist on the dashboard that ticks off as you go; plain-English summary of the design review on the dashboard and inspector.
+- Permanent deletions leave a deletion marker so other devices never bring a deleted project back.
+
 ## [0.1.0] — 2026-11-21 — Build 1: Foundation
 
 ### Added

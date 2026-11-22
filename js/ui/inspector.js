@@ -7,6 +7,7 @@ import { icon } from './icons.js';
 import { button, checkCard, derivedList, emptyState, keyValueList, badge, progressBar } from './components.js';
 import { categoryInfo, applicationInfo, stageInfo } from '../project-schema.js';
 import { FIDELITY_DISCLAIMER } from '../engineering/provenance.js';
+import { reviewSummary } from '../engineering/requirements.js';
 import { formatRelative } from '../utils/format.js';
 
 export class InspectorPanel {
@@ -83,6 +84,7 @@ export class InspectorPanel {
         h(
           'div',
           { class: 'inspector__review' },
+          h('p', { class: 'summary-sentence' }, reviewSummary(evaluation)),
           h('p', { class: 'inspector__meta' }, `${evaluation.completeness.set} of ${evaluation.completeness.total} requirements set`),
           progressBar(evaluation.completeness.set, evaluation.completeness.total, { label: 'Requirements set' }),
           evaluation.checks.length

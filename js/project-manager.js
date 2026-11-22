@@ -18,6 +18,7 @@ import { Emitter } from './utils/events.js';
 import { uid } from './utils/id.js';
 import { deepClone, isPlainObject } from './utils/immutable.js';
 import { diff } from './utils/diff.js';
+import { projectContent, same } from './sync/merge.js';
 import { STORES, ConflictError } from './database.js';
 import {
   PROJECT_SCHEMA_VERSION,
@@ -532,7 +533,7 @@ export class ProjectManager extends Emitter {
   /** Permanently delete a project that is already in the Trash, including its versions. */
   async deleteProjectPermanently(id) {
     let name = '';
-    await this.#db.transaction([STORES.projects, STORES.versions], 'readwrite', async (tx) => {
+    await this.#db.transaction([STORES.projects, STORES.versions, STORES.meta], 'readwrite', async (tx) => {
       const projects = tx.objectStore(STORES.projects);
       const stored = await promisify(projects.get(id));
       if (!stored) throw new NotFoundError('Project not found');
@@ -542,6 +543,11 @@ export class ProjectManager extends Emitter {
       const keys = await promisify(versions.index('projectId').getAllKeys(id));
       for (const key of keys) await promisify(versions.delete(key));
       await promisify(projects.delete(id));
+      // Deletion marker: other devices merging through Google Drive must not bring the project back.
+      const meta = tx.objectStore(STORES.meta);
+      const gone = (await promisify(meta.get('gone')))?.value ?? {};
+      gone[id] = this.#now().toISOString();
+      await promisify(meta.put({ key: 'gone', value: gone }));
     });
     this.#log.info('project', `Permanently deleted "${name}"`, { id });
     this.#broadcast({ type: 'deleted', id });
@@ -716,6 +722,74 @@ export class ProjectManager extends Emitter {
     this.#broadcast({ type: 'projects-changed' });
     this.emit('projects-changed', { remote: false });
     return { doc, warnings, idChanged, versions: validVersions.length };
+  }
+
+  // ---- Multi-device sync (Google Drive) ------------------------------------------------
+
+  /** Everything that is synchronised between devices. Pending edits are saved first. */
+  async snapshot() {
+    await this.flush();
+    const [projects, versions, learning, gone] = await Promise.all([
+      this.#db.getAll(STORES.projects),
+      this.#db.getAll(STORES.versions),
+      this.#db.getAll(STORES.learning),
+      this.#db.getMeta('gone'),
+    ]);
+    return { projects, versions, learning, gone: gone ?? {} };
+  }
+
+  /** True when the open project has edits that are not saved yet (a merge must wait). */
+  get busyEditing() {
+    return this.isDirty || this.#status === SAVE_STATUS.saving;
+  }
+
+  /**
+   * Store a merged snapshot from another device. Only projects whose content changed are
+   * written (with this device's next revision number); deletion markers remove projects
+   * deleted elsewhere. Returns the number of projects added, changed or removed.
+   */
+  async applySnapshot(snapshot) {
+    let changed = 0;
+    const touched = [];
+    await this.#db.transaction([STORES.projects, STORES.versions, STORES.learning, STORES.meta], 'readwrite', async (tx) => {
+      const projects = tx.objectStore(STORES.projects);
+      const versions = tx.objectStore(STORES.versions);
+      const learning = tx.objectStore(STORES.learning);
+      for (const incoming of snapshot.projects ?? []) {
+        const stored = await promisify(projects.get(incoming.id));
+        if (stored && same(projectContent(stored), projectContent(incoming))) continue;
+        let doc = incoming;
+        if (validateProject({ ...doc, revision: 1 }).length) {
+          doc = sanitizeProject(incoming, { now: this.#now() }).doc;
+          doc.deletedAt = incoming.deletedAt ?? null;
+        }
+        await promisify(projects.put({ ...doc, revision: (stored?.revision ?? 0) + 1 }));
+        changed += 1;
+        touched.push(doc.id);
+      }
+      for (const id of Object.keys(snapshot.gone ?? {})) {
+        if (await promisify(projects.get(id))) {
+          for (const key of await promisify(versions.index('projectId').getAllKeys(id))) await promisify(versions.delete(key));
+          await promisify(projects.delete(id));
+          changed += 1;
+          touched.push(id);
+        }
+      }
+      for (const version of snapshot.versions ?? []) {
+        if (!(await promisify(versions.get(version.id)))) await promisify(versions.put(version));
+      }
+      for (const entry of snapshot.learning ?? []) {
+        const stored = await promisify(learning.get(entry.id));
+        if (!same(stored, entry)) await promisify(learning.put(entry));
+      }
+      await promisify(tx.objectStore(STORES.meta).put({ key: 'gone', value: snapshot.gone ?? {} }));
+    });
+    if (changed) {
+      this.#broadcast({ type: 'projects-changed' });
+      this.emit('projects-changed', { remote: true });
+      if (this.#current && touched.includes(this.#current.id) && !this.busyEditing) await this.reloadFromStorage();
+    }
+    return changed;
   }
 
   async exportBackup() {

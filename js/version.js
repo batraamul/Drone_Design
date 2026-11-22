@@ -7,7 +7,7 @@
  */
 export const APP_NAME = 'AEROLAB X';
 export const APP_TAGLINE = 'Drone Design, Intelligence & Simulation Studio';
-export const APP_VERSION = '0.1.0';
+export const APP_VERSION = '0.2.0';
 export const BUILD_NUMBER = 1;
 export const BUILD_NAME = 'Foundation';
 export const TOTAL_BUILDS = 12;

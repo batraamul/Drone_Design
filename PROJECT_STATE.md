@@ -5,11 +5,11 @@ Single source of truth for where development stands. Read this at the start of e
 | Item | State |
 |---|---|
 | Current build | **Build 1 — Foundation: complete and tested locally** |
-| Application version | 0.1.0 |
+| Application version | 0.2.0 (Build 1.1: Google Drive sync, install help, getting-started guide) |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
-| Latest deployed version | **None yet** — deploy job waits for GitHub Pages to be enabled (Settings → Pages → Source: GitHub Actions), then re-run the workflow |
-| Last successful test run | 2026-11-21 — `npm test`: structural checks 12/12 groups; Node tests 60/60 (Node 22 and 24); Playwright 16/16 (desktop + mobile Chromium) |
+| Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
+| Last successful test run | 2026-11-21 — `npm test`: structural checks 12/12 groups; Node tests 70/70 (Node 22 and 24); Playwright 17/17 (desktop + mobile Chromium) |
 
 ## Completed (Build 1)
 
@@ -20,7 +20,9 @@ Single source of truth for where development stands. Read this at the start of e
 - State store with undo/redo and derived-calculation graph.
 - Engineering foundations: units, provenance taxonomy, ISA atmosphere (validated), requirement-consistency checks.
 - Learning Centre (partial): 3 lessons with calculators and knowledge checks; 41-term glossary.
-- PWA: manifest, icons, versioned service worker, update flow.
+- PWA: manifest, icons, versioned service worker, update flow; install card with per-OS instructions.
+- Google Drive sync (0.2.0): per-device JSON copies in the user's Drive, three-way merge with deletion markers, erase-local-copy option.
+- Getting-started checklist and plain-English design-review summary.
 - Quality: structural gate, Node tests, Playwright tests; GitHub Actions CI + Pages deployment workflow.
 - Documentation: README, CHANGELOG, docs/ (architecture, roadmap, engineering models, data model, AI models, deployment).
 
@@ -39,7 +41,8 @@ Drone Architecture, 3D Design Studio (Build 2) · Avionics Laboratory, Component
 ## Blocked / needs owner action
 
 1. ~~Push access~~ — resolved 2026-11-22; Build 1 pushed to `main`.
-2. **Enable GitHub Pages:** Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+2. ~~Enable GitHub Pages~~ — done 2026-11-22.
+4. **Google Drive sync:** paste the OAuth Client ID (same as E-Diary) in Settings on each device.
 3. Optional: protect `main` (require the "Test and build" check); choose a licence.
 
 ## Technical decisions

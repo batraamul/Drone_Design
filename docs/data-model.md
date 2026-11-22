@@ -75,6 +75,14 @@ A bare project document is also accepted on import. Imports never overwrite: if 
 
 Restoring a backup **merges**: missing projects are added, identical ones (same revision and timestamp) are skipped, differing ones are added as copies, and existing preferences are kept.
 
+### Google Drive device copy (`AEROLAB X — <device>.json`)
+
+Stored in the Drive folder *AEROLAB X sync* (Drive `appProperties`: `aerolab=folder` for the folder; `aerolab=device`, `dev=<device id>`, `name=<device name>` for each copy):
+
+`{ app: 'AEROLAB X', kind: 'device-copy', format: 1, appVersion, device: { id, name }, savedAt, data: { projects[], versions[], learning[], gone: { projectId: deletedAt } } }`
+
+Merging (`js/sync/merge.js`) is three-way against the copy merged from that device last time (`meta` store key `gd-base:<device>`): changed on one side → that side; changed on both → later `updatedAt`; deleted on one side and unchanged on the other → deleted; deleted versus edited → edit kept; notes merged by id; permanently deleted projects listed in `gone` never return. The per-device `revision` counter is not synced. Sync settings live in `localStorage` (`aerolab:gdrive`, `aerolab:device`); the Google access token only in `sessionStorage`.
+
 ## 4. Migration policy
 
 - **Database:** numbered, additive migrations only (new stores and indexes). Never delete stores, indexes or records.

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://batraamul.github.io; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com/gsi/style; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://batraamul.github.io https://www.googleapis.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"
     />
     <meta name="referrer" content="no-referrer" />
     <title>AEROLAB X — Drone Design, Intelligence &amp; Simulation Studio</title>
@@ -45,6 +45,10 @@
           <button class="save-state" type="button" id="save-state" data-status="no-project" aria-live="polite">
             <span class="save-state__dot" aria-hidden="true"></span>
             <span class="save-state__text" id="save-state-text">No project</span>
+          </button>
+          <button class="save-state sync-chip" type="button" id="sync-status" data-state="off" title="Google Drive sync">
+            <span class="save-state__dot" aria-hidden="true"></span>
+            <span class="save-state__text" id="sync-status-text">Drive: off</span>
           </button>
         </div>
         <div class="topbar__actions">
