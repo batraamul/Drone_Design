@@ -7,8 +7,8 @@ Single source of truth for where development stands. Read this at the start of e
 | Current build | **Build 1 — Foundation: complete and tested locally** |
 | Application version | 0.1.0 |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
-| Current commit | Initial Build 1 commit on `main` (prepared locally; **not yet pushed** — see "Blocked") |
-| Latest deployed version | **None yet** — GitHub Pages not yet enabled; first deployment follows the first push |
+| Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
+| Latest deployed version | **None yet** — deploy job waits for GitHub Pages to be enabled (Settings → Pages → Source: GitHub Actions), then re-run the workflow |
 | Last successful test run | 2026-11-21 — `npm test`: structural checks 12/12 groups; Node tests 60/60 (Node 22 and 24); Playwright 16/16 (desktop + mobile Chromium) |
 
 ## Completed (Build 1)
@@ -38,7 +38,7 @@ Drone Architecture, 3D Design Studio (Build 2) · Avionics Laboratory, Component
 
 ## Blocked / needs owner action
 
-1. **Push access for the development session.** Attaching the repository to the Claude session (push and read) was refused by the session's permission check, so Build 1 has not been pushed. Either grant/confirm access in a new session, or upload this repository content yourself (see the Build 1 report).
+1. ~~Push access~~ — resolved 2026-11-22; Build 1 pushed to `main`.
 2. **Enable GitHub Pages:** Settings → Pages → Build and deployment → Source: **GitHub Actions**.
 3. Optional: protect `main` (require the "Test and build" check); choose a licence.
 
