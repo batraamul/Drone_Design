@@ -44,6 +44,8 @@ export const DIMENSIONS = Object.freeze({
   temperature: { si: 'K', label: 'Temperature', units: { K: null, '°C': null, '°F': null } },
   dynamicViscosity: { si: 'Pa·s', label: 'Dynamic viscosity', units: { 'Pa·s': 1, 'mPa·s': 1e-3 } },
   kinematicViscosity: { si: 'm²/s', label: 'Kinematic viscosity', units: { 'm²/s': 1, 'mm²/s': 1e-6 } },
+  motorConstant: { si: 'rpm/V', label: 'Motor velocity constant', units: { 'rpm/V': 1 } },
+  temperatureDifference: { si: 'ΔK', label: 'Temperature difference', units: { 'ΔK': 1, 'Δ°C': 1 } },
   dimensionless: { si: '1', label: 'Dimensionless', units: { 1: 1, '%': 0.01 } },
 });
 

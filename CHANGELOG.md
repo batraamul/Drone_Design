@@ -2,6 +2,39 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-11-23 — Build 4: Propulsion and energy, design flow, balloon glide-sonde
+
+### Added
+
+- **Propulsion & Energy** (Propulsion Laboratory and Power & Energy):
+  - motor and propeller selection (illustrative library or your own datasheet or measured values, with a source);
+  - the hover operating point (speed, torque, current, voltage, efficiency, throttle), total thrust versus throttle and full-throttle thrust-to-weight;
+  - hot-and-high conditions;
+  - a battery model with an open-circuit voltage curve, internal resistance and sag;
+  - time-stepped endurance and range;
+  - a mass budget against the take-off mass target;
+  - fixed-wing cruise power.
+
+  Thirteen new checks.
+- **Design flow:** seven simple steps from targets to build sheet, with a step bar and Back/Next on every design page and a progress card on the dashboard.
+- **Design Summary and build sheet:** flow status, open problems, scale drawing, dimensions, parts list (CSV), key results with model and provenance, and guidance for a journal paper (for example the Defence Science Journal) or a patent (InPASS prior-art search first). It prints cleanly.
+- **Stratospheric Sounding Lab (early Build 13):**
+  - balloon ascent to 33 km (gas, free lift, ascent rate, burst altitude and margin);
+  - release, stall drop and pull-out within a load-factor limit (2-D simulation, Mach and Reynolds number);
+  - glide with sonde vertical resolution;
+  - a hybrid powered stage on the battery energy left;
+  - a mission profile chart and stage table;
+  - wind-aware ascent through the open SondeHub/Tawhiri predictor, with KML export.
+- **Courses, books & tools:** NPTEL, Coursera and MIT courses, reference books, UIUC measured data, open-source tools (OpenVSP, XFLR5, FreeCAD, Blender, ArduPilot, PX4, QGroundControl, Gazebo, QGIS), and defence publication and patent services.
+- **3D export** to STL (FreeCAD, OpenVSP, 3D printing) and glTF (Blender).
+- Lessons "Matching motor, propeller and battery" and "Balloon-launched glide-sondes", with calculators.
+- Non-weapon **defence applications** (logistics, surveillance and reconnaissance, met support, high-altitude operations) and disaster relief.
+- Project schema **v4** (propulsion) and **v5** (balloon mission), with automatic migrations. Batteries gain an optional internal-resistance field.
+
+### Changed
+
+- "Propulsion Laboratory" is now titled "Propulsion & Energy"; "Civilian application" is now "Application".
+
 ## [0.4.0] — 2026-11-22 — Build 3: Avionics and electronics
 
 ### Added

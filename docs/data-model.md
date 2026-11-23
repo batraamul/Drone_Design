@@ -2,11 +2,11 @@
 
 All engineering quantities are stored in **SI units**. Every document carries a schema version so it can be migrated forward.
 
-## 1. Project document (schema version 3)
+## 1. Project document (schema version 5)
 
 | Field | Type | Description |
 |---|---|---|
-| `schemaVersion` | integer | Document schema version (currently 3; 1 = Build 1, 2 = Build 2) |
+| `schemaVersion` | integer | Document schema version (currently 5; 1 = Build 1, 2 = Build 2, 3 = Build 3, 4 = Build 4, 5 = balloon mission) |
 | `id` | string `prj_…` | Stable project identifier |
 | `revision` | integer | Persistence revision; increments on every save; used for conflict detection |
 | `name` | string ≤ 120 | Project name |
@@ -17,7 +17,7 @@ All engineering quantities are stored in **SI units**. Every document carries a 
 | `tags` | string[] ≤ 20 | Free tags (each ≤ 40 characters) |
 | `requirements` | object | Targets, see below |
 | `notes` | Note[] ≤ 500 | Design log |
-| `modules` | object | Module data: `modules.configuration` (schema 2) and `modules.components` (schema 3), both required; see below. Unknown module keys are preserved |
+| `modules` | object | Module data: `configuration` (2), `components` (3), `propulsion` (4) and `sounding` (5), all required; see below. Unknown module keys are preserved |
 | `createdAt`, `updatedAt` | ISO 8601 | Timestamps |
 | `deletedAt` | ISO 8601 or null | Set when the project is in the Trash |
 | `appVersion` | string | Application version that last wrote the document |
@@ -51,6 +51,27 @@ All engineering quantities are stored in **SI units**. Every document carries a 
 A connection is `{ id: 'con_…', kind: 'power' | 'uart' | 'i2c' | 'spi' | 'can' | 'pwm' | 'usb' | 'ethernet', from, to }`, joining two different existing components.
 
 Import and migration keep valid values, reset invalid ones to neutral defaults, and drop connections to missing components, with warnings.
+
+### Propulsion (`modules.propulsion`, schema 4)
+
+`{ motor: Part, propeller: Part, batteryId: cmp id | null, settings }`
+- A Part is `{ name, catalogueId, provenance, source, specs }`.
+- Motor specs: `kv` (rpm/V), `resistance` (Ω), `noLoadCurrent` (A), `maxCurrent` (A), `mass` (kg).
+- Propeller specs: `diameter` of the data (m), `pitch` (m), `ct`, `cp`, `mass` (kg).
+- Settings: `structureMass` (kg), `usableFraction`, `escEfficiency`, `isaDeltaT` (K), `cruiseLD`, `cruisePropEfficiency`, `cruiseMotorEfficiency`.
+
+The 3→4 migration picks the illustrative propeller closest to the configured diameter and a matching motor.
+
+### Balloon mission (`modules.sounding`, schema 5)
+
+`{ enabled, gas: 'helium' | 'hydrogen', balloon: { name, catalogueId, provenance, source }, useDesignMass, useDesignWing, params, site: { latitude, longitude } }`
+
+The params, all in SI, are:
+- balloon and launch: `launchElevation`, `balloonMass`, `burstDiameter`, `balloonCd`, `freeLift` (kg), `trainMass`, `payloadMass`, `releaseAltitude` (AGL);
+- aircraft: `wingArea`, `wingSpan`, `cd0`, `oswald`, `clMax`, `maxLoadFactor`;
+- sonde and hybrid stage: `sampleInterval`, `hybridAltitude`, `poweredLD`, `poweredEfficiency`.
+
+`enabled` is false by default; the 4→5 migration adds it disabled.
 
 ### Requirement entry
 

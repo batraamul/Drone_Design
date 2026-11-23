@@ -1,12 +1,12 @@
 # AEROLAB X
 
-**Drone Design, Intelligence & Simulation Studio** — a modular, local-first engineering workstation for civilian UAVs and micro aerial vehicles: configuration, avionics, propulsion, energy, aerodynamics, structures, flight dynamics, mission planning, simulation, AI and engineering documentation, built around one shared project model.
+**Drone Design, Intelligence & Simulation Studio** — a modular, local-first engineering workstation for civilian and non-weapon defence UAVs and micro aerial vehicles: configuration, avionics, propulsion, energy, aerodynamics, structures, flight dynamics, mission planning, simulation, AI and engineering documentation, built around one shared project model.
 
 > **Status: Build 1 of 12 (Foundation), version 0.2.0 (adds Google Drive sync).** The shell, project management, local persistence, engineering foundations and part of the Learning Centre are complete. Other modules are labelled *Planned* in the app and perform no calculations yet. See [`docs/roadmap.md`](docs/roadmap.md).
 
 Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
-## What it does (Builds 1–3)
+## What it does (Builds 1–4)
 
 - **Projects** — create, duplicate, tag, describe, version, compare, restore, Trash, import/export and full backups; autosave with protection against two tabs overwriting each other; undo/redo.
 - **Design requirements** — MTOW, payload, endurance, range, cruise airspeed, operating altitude and maximum wind, stored in SI units with display units of your choice, with live consistency checks (each shows its equation, inputs, assumptions and provenance).
@@ -20,7 +20,11 @@ Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
   Set its dimensions in any unit. Scale top, front and side drawings and a geometry review update as you type: propeller clearance, disc loading, ideal hover power, wing area, aspect ratio, MAC and tail volume coefficients, each with its equation.
 - **3D Design Studio** (Build 2) — rotate, pan and zoom a 3D conceptual model built from the same numbers, with standard views. The 2D drawings are shown if WebGL is unavailable.
 - **Avionics Laboratory** (Build 3) — add batteries, regulators, flight controller, ESCs, radios, GNSS, sensors and payloads. Connect power and data and see a block diagram. A worst-case power budget per rail and compatibility checks cover voltages, current ratings, ports and 3.3 V/5 V logic levels. The **Component Library** offers illustrative example parts; your own parts carry their datasheet source.
-- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, wing planform and tail sizing, and avionics power budgets, with calculators and knowledge checks; searchable glossary.
+- **Propulsion & Energy** (Build 4) — match motor, propeller and battery: hover power, throttle, thrust-to-weight, battery sag, mass budget, endurance and range, including hot-and-high conditions.
+- **Design flow and Design Summary** — seven steps from targets to a printable build sheet with parts list (CSV), key results with provenance, and paper and patent guidance.
+- **Stratospheric Sounding Lab** (early Build 13) — carry the aircraft to 33 km on a balloon, simulate the release, stall and pull-out, the glide with sonde sampling and a hybrid powered return; wind-aware ascent prediction (SondeHub/Tawhiri) with KML export.
+- **Open-source tools** — export the 3D model to STL/glTF for FreeCAD, OpenVSP, Blender or 3D printing; the Learning Centre links NPTEL, Coursera and MIT courses, books, UIUC propeller data, and tools such as XFLR5, ArduPilot, PX4 and QGroundControl.
+- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, wing planform and tail sizing, avionics power budgets, propulsion matching and balloon glide-sondes, with calculators and knowledge checks; searchable glossary.
 - **Workstation** — dark/light themes, command palette (`Ctrl/⌘ + K`), resizable inspector and engineering console (log, problems, calculation register), offline use and installable PWA.
 
 ## Install it
@@ -52,7 +56,7 @@ Every value is labelled with its provenance (requirement, user input, assumption
 
 ## Responsible use
 
-For civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue research aircraft. AEROLAB X contains no weapon design or integration, targeting, weapon release or delivery, autonomous attack or harmful-payload functions. AI and autonomy experiments run only in simulation and are never connected to physical flight controls.
+For civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue aircraft, and non-weapon defence roles: logistics and resupply, surveillance and reconnaissance, meteorological support and high-altitude operations. AEROLAB X contains no weapon design or integration, targeting, weapon release or delivery, autonomous attack or harmful-payload functions. AI and autonomy experiments run only in simulation and are never connected to physical flight controls.
 
 ## Run locally
 
@@ -92,8 +96,8 @@ index.html, manifest.json, service-worker.js, version.json
 css/            main, dashboard, engineering, responsive
 js/
   app.js, router.js, database.js, project-manager.js, project-schema.js, state-manager.js, version.js
-  engineering/  units, provenance, atmosphere, requirements, configuration, geometry, components, catalogue, electrical   (pure, tested models)
-  modules/      dashboard, projects, architecture, design-studio, avionics, component-library, settings, planned-module, module-registry, learning/
+  engineering/  units, provenance, atmosphere, requirements, configuration, geometry, components, catalogue, electrical, propulsion, sounding   (pure, tested models)
+  modules/      dashboard, projects, architecture, design-studio, avionics, component-library, propulsion, sounding, summary, settings, planned-module, module-registry, learning/
   ui/           shell, inspector, bottom panel, command palette, dialogs, notifications, components, icons
   utils/        dom, events, ids, immutable data, diff, format, logger, preferences, file, PWA
   visualisation/ plots, views2d (scale drawings), view3d (three.js model), block-diagram

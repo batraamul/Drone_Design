@@ -248,6 +248,131 @@ Ideal hover power ignores every loss.
 - The motor current comes from the user's estimate until the propulsion models of Build 4.
 - The link budget and SDR visualisations follow in Build 7.
 
-## 7. Planned models (not implemented)
+## 7. Propulsion, battery, mass and endurance — `js/engineering/propulsion.js` (Build 4)
 
-Mass and CG budgets (Build 4/5), BLDC motor and propeller models (Build 4), battery equivalent-circuit model (Build 4), aerofoil and lift/drag estimates (Build 5), beam bending/torsion and vibration (Build 5), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.
+**Data.** `project.modules.propulsion`:
+- `motor`: name, catalogue id, provenance, source, and `specs` {kv rpm/V, resistance Ω, noLoadCurrent A, maxCurrent A, mass kg};
+- `propeller`: the same metadata, with `specs` {diameter of the data, pitch, ct, cp, mass};
+- `batteryId`;
+- `settings` {structureMass, usableFraction, escEfficiency, isaDeltaT, cruiseLD, cruisePropEfficiency, cruiseMotorEfficiency}.
+
+The propeller diameter used in every calculation is the one in the configuration (§5). The propeller entry supplies only coefficients, pitch and mass, and a warning (PR-PROP-001) appears if its data diameter differs by more than 8 %.
+
+**Air.** ISA at the operating-altitude target with ΔT (hot day): ρ = p/(R T).
+
+| Quantity | Equation |
+|---|---|
+| Hover thrust per lift rotor | T = m_est g₀ / n_lift |
+| Propeller speed | n = √(T/(C_T ρ D⁴)) (rev/s, UIUC convention) |
+| Shaft power | P = C_P ρ n³ D⁵ (× 1.2 for coaxial pairs: Leishman's interference factor, about 1.16–1.28) |
+| Torque | Q = P/(2π n) |
+| Motor | K_t = 60/(2π K_v), I = Q/K_t + I₀, V = 60 n/K_v + I R, η = P/(V I) |
+| Total hover power | P_hover = n V I/η_ESC + P_avionics (P_avionics from §6) |
+| Battery | V_oc = n_cells × OCV(SOC) (typical per-cell curves for LiPo, LiPo HV and Li-ion); R_pack from the datasheet, else ≈ n_cells k/C[Ah] with k = 0.015 Ω·Ah (LiPo) or 0.08 Ω·Ah (Li-ion) |
+| Battery current | I = (V_oc − √(V_oc² − 4 R P))/(2R); infeasible if V_oc² < 4RP |
+| Throttle | δ ≈ V_motor / V_terminal |
+| Full-throttle thrust | bisection on n of 60n/K_v + R(Q(n)/K_t + I₀) = η_ESC V_terminal(end of usable capacity) |
+| Endurance | time-stepped discharge dSOC/dt = −I/Q until SOC = 1 − f_use or the loaded cell voltage < V_min |
+| Fixed-wing cruise (until Build 5) | T = W/(L/D), P = T V/(η_prop η_mot η_ESC) + P_avionics; range = V t |
+| Mass budget | m_est = Σ components + n(m_motor + m_prop) + m_structure + m_payload |
+
+**Checks.**
+
+| ID | Rule | Severity |
+|---|---|---|
+| PR-MASS-001 | m_est > MTOW target | error |
+| PR-HOV-001 | V_motor > V_terminal, or the battery cannot deliver the power | error |
+| PR-HOV-002 | Hover throttle > 0.75 | warning |
+| PR-HOV-003 | T/W < 1.5 (error if < 1.1) | warning |
+| PR-MOT-001 | Hover current > motor rating | error |
+| PR-MOT-002 | Full-throttle current > motor rating | warning |
+| PR-ESC-001 | Full-throttle current > ESC rating | warning |
+| PR-ESC-002 | ESC quantity ≠ motor count | info |
+| PR-BAT-001 | Battery current > rating | error |
+| PR-PROP-001 | Propeller data diameter differs from the drawing | warning |
+| PR-PROP-002 | Figure of merit C_T^1.5/(√2 C_P) > 0.85 | warning |
+| PR-CRU-001 | Static thrust < 0.3 W (fixed wing) | warning |
+| PR-END-001 | Endurance below the requirement | warning |
+
+**Verification.** `tests/engineering/propulsion.test.mjs` covers:
+- the operating point by hand, and the solved speed reproducing the thrust;
+- the full-throttle root satisfying the voltage equation;
+- OCV interpolation and monotonic curves;
+- the battery current satisfying I(V_oc − IR) = P;
+- discharge time within 5 % of the energy estimate;
+- every category's default;
+- the mass-budget identity;
+- every check firing, including hot-and-high needing more than 20 % extra power.
+
+**Limitations.**
+- Static propeller coefficients (no advance ratio) and constant internal resistance.
+- No temperature or ageing of the battery, and no ESC or motor thermal model.
+- The fixed-wing cruise uses estimated L/D and efficiencies until the aerodynamics of Build 5.
+
+## 8. Balloon-launched glide-sonde mission — `js/engineering/sounding.js` (Build 13, early)
+
+**Ascent.** The lifting gas is at ambient temperature and pressure (zero superpressure), with M_air = 0.0289644 kg/mol, M_He = 0.0040026 and M_H₂ = 0.00201588.
+
+| Quantity | Equation |
+|---|---|
+| Gas amount | n_gas = L_gross/(M_air − M_gas), with L_gross = m_balloon + m_train + m_aircraft + F (kg) |
+| Volume | V(z) = n_gas R T(z)/p(z) |
+| Ascent rate | w = √(2 F g/(ρ C_D π r²)), r from V, C_D ≈ 0.3 |
+| Burst | V(z_b) = π d_burst³/6 (bisection) |
+| Time to release | t = Σ Δz/w |
+
+Assumption: with constant C_D the model's ascent rate rises with height (w ∝ ρ^(−1/6)). Real balloons climb at a more nearly constant rate, so ascent times are indicative.
+
+**Release, stall and pull-out, glide.**
+- 2-D point mass, RK4 integration:
+  - m V̇ = −D − W sin γ, m V γ̇ = L − W cos γ;
+  - L = C_L q S, D = (C_D0 + k C_L²) q S, k = 1/(π e AR).
+- Release from V = 1 m/s, γ ≈ −90° (nose down).
+- Pull-out: C_L = min(C_Lmax, n_max W/(q S)) until γ reaches the equilibrium glide angle γ_eq = −atan(1/(L/D)).
+- Glide: flight-path hold C_L = clamp(C_L* + 2.5(γ_eq − γ)), with C_L* = √(C_D0/k) (capped at 0.9 C_Lmax).
+- The simulation reports Mach = V/a and Re = ρ V c̄/μ (Sutherland viscosity).
+
+**Sonde resolution.** Δz = w_sink Δt_s, with w_sink = V/(L/D) and V = √(2W/(ρ S C_L)).
+
+**Hybrid stage.**
+- Energy left = E_usable − P_avionics (t_ascent + t_glide).
+- P = W V/((L/D) η) + P_avionics, t = E_left/P, range = V t.
+
+**Checks.**
+
+| ID | Rule | Severity |
+|---|---|---|
+| SD-ASC-001 | Burst below release | error |
+| SD-ASC-002 | Burst − release < 2 km | warning |
+| SD-ASC-003 | Launch ascent rate outside 3–8 m/s | warning |
+| SD-GL-001 | M_max > 0.6 | warning |
+| SD-GL-002 | Re < 60 000 after the pull-out | warning |
+| SD-GL-003 | No recovery to a steady glide | error |
+| SD-PW-001 | Battery exhausted before the powered stage | error |
+
+**Wind-aware ascent.**
+- Optional: the SondeHub instance of the Tawhiri predictor (NOAA GFS winds), standard profile, with burst_altitude = release altitude. The descent stage is ignored.
+- The ascent track is exported as KML.
+- Online only, for non-commercial use.
+
+**Verification.** `tests/engineering/sounding.test.mjs` checks:
+- the lift budget, launch volume and ascent rate by hand;
+- the burst volume identity;
+- that more free lift rises faster but bursts lower, and that hydrogen needs less gas;
+- burst-before-release handling;
+- glide-polar formulas;
+- that the pull-out respects n_max;
+- that glide distance ≈ (L/D) × height lost, to within 10 %;
+- the hybrid energy bookkeeping;
+- the Tawhiri query, parsing and KML.
+
+**Limitations.**
+- No wind in the glide.
+- No gas temperature lag or superpressure.
+- Constant C_D0 and C_Lmax: low-Re data must be supplied by the user.
+- No thermal model of the battery: the cold-soak note only.
+- Simulation for planning; airspace approval is the operator's responsibility.
+
+## 9. Planned models (not implemented)
+
+CG and inertia (Build 5), propeller performance at forward speed (Build 5), aerofoil and lift/drag estimates (Build 5), beam bending/torsion and vibration (Build 5), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.

@@ -12,6 +12,7 @@ import { CHEMISTRIES, COMPONENT_TYPES, CONNECTION_KINDS, INTERFACE_KINDS, LIMITS
 import { CATALOGUE, exampleQuadSet } from '../engineering/catalogue.js';
 import { provenanceInfo } from '../engineering/provenance.js';
 import { LINK_STYLES, drawBlockDiagram } from '../visualisation/block-diagram.js';
+import { flowBar } from '../ui/design-flow.js';
 
 const components = (store) => store.doc?.modules?.components ?? { items: [], connections: [] };
 
@@ -359,6 +360,7 @@ export async function mount(container, ctx) {
       dynamic = null;
       container.replaceChildren(
         header(),
+        flowBar(ctx, 'avionics'),
         emptyState({
           icon: 'chip',
           title: 'Open a project to design its avionics',
@@ -391,6 +393,7 @@ export async function mount(container, ctx) {
     dynamic = { diagram: h('div', { class: 'bd-wrap' }), connections: h('div', { class: 'span-2' }), budget: h('div', { class: 'span-2' }), review: h('div', { class: 'span-2' }) };
     container.replaceChildren(
       header(),
+      flowBar(ctx, 'avionics'),
       h('div', { class: 'notice notice--info', role: 'note' }, icon('info', { size: 18 }), h('p', null, 'Library parts are illustrative examples with typical values, not real products. Enter datasheet values and their source for the parts you actually use.')),
       toolbar,
       h(

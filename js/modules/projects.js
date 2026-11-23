@@ -4,6 +4,7 @@
  */
 import { h, debounce } from '../utils/dom.js';
 import { defaultLayout, layoutInfo, switchLayout } from '../engineering/configuration.js';
+import { flowBar } from '../ui/design-flow.js';
 import { icon } from '../ui/icons.js';
 import {
   badge,
@@ -77,7 +78,7 @@ export async function newProjectDialog(ctx) {
     body: [
       field({ id: nameId, label: 'Project name', control: name }),
       categoryChoices('np-category', 'multirotor'),
-      h('div', { class: 'form-row' }, field({ id: appId, label: 'Civilian application', control: application }), field({ id: descId, label: 'Description (optional)', control: description, wide: true })),
+      h('div', { class: 'form-row' }, field({ id: appId, label: 'Application', control: application }), field({ id: descId, label: 'Description (optional)', control: description, wide: true })),
       h('p', { class: 'notice notice--info' }, icon('info', { size: 16 }), 'After creating the project, choose its layout and dimensions in Drone Architecture and set its design requirements.'),
     ],
     actions: [
@@ -291,7 +292,7 @@ function overviewTab(ctx) {
       body: [
         nameField,
         field({ id: ids.desc, label: 'Description', control: descInput, hint: 'Purpose, operating environment and key constraints.' }),
-        h('div', { class: 'form-row' }, field({ id: ids.app, label: 'Civilian application', control: appSelect }), field({ id: ids.stage, label: 'Design stage', control: stageSelect, hint: 'Self-declared maturity. There is deliberately no “flight-ready” stage.' })),
+        h('div', { class: 'form-row' }, field({ id: ids.app, label: 'Application', control: appSelect }), field({ id: ids.stage, label: 'Design stage', control: stageSelect, hint: 'Self-declared maturity. There is deliberately no “flight-ready” stage.' })),
         field({ id: ids.tags, label: 'Tags', control: tagsInput }),
         categories,
       ],
@@ -476,7 +477,7 @@ const REASON_LABELS = {
   duplicate: ['Duplicated', 'info'],
 };
 
-const PATH_LABELS = { name: 'Name', description: 'Description', category: 'Category', application: 'Civilian application', stage: 'Design stage', tags: 'Tags', modules: 'Module data', notes: 'Notes' };
+const PATH_LABELS = { name: 'Name', description: 'Description', category: 'Category', application: 'Application', stage: 'Design stage', tags: 'Tags', modules: 'Module data', notes: 'Notes' };
 
 function describeChange(change, prefs, docs) {
   const [root, key, leaf] = change.path;
@@ -676,6 +677,7 @@ async function renderWorkspace(container, ctx, route) {
         button({ label: 'Trash', icon: 'trash', size: 'sm', variant: 'ghost', ariaLabel: 'Move this project to the Trash', onClick: () => actions.trashProject(id) }),
       ],
     }),
+    flowBar(ctx, 'targets'),
     tabs,
     h('div', { class: 'tabpanel', id: 'project-tabpanel', role: 'tabpanel', 'aria-labelledby': `project-tab-${tabId}` }, tab.element),
   );

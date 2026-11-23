@@ -10,6 +10,8 @@
 import { isa, G0, R_AIR, GAMMA, T0, P0, RHO0, SUTHERLAND_BETA, SUTHERLAND_S, EARTH_RADIUS } from '../../engineering/atmosphere.js';
 import { formatNumber } from '../../utils/format.js';
 import { wingPlanform } from '../../engineering/geometry.js';
+import { rotorOperatingPoint } from '../../engineering/propulsion.js';
+import { balloonAscent, defaultSounding } from '../../engineering/sounding.js';
 
 const n = (value, digits = 4) => formatNumber(value, { digits });
 
@@ -521,14 +523,188 @@ export const LESSONS = Object.freeze([
       'NXP UM10204, I²C-bus specification and user manual, rev. 7.0, 2021 — electrical characteristics.',
     ],
   },
+  {
+    id: 'propulsion-energy',
+    title: 'Matching motor, propeller and battery',
+    icon: 'propeller',
+    level: 'Propulsion',
+    minutes: 20,
+    summary: 'From the thrust you need to propeller speed, motor current and voltage, battery current and endurance — and why K_v, propeller size and cell count must be chosen together.',
+    beginner: [
+      'In hover every rotor must push up its share of the weight. A propeller makes thrust by spinning: thrust grows with the square of its speed and the fourth power of its diameter, so a slightly bigger propeller needs much less speed.',
+      'The motor turns that speed into a voltage requirement (through K_v, revolutions per minute per volt) and the propeller’s torque into a current requirement. The battery must supply that voltage while delivering the current, and it sags as it empties.',
+      'A good match hovers at about half throttle, can lift about twice the weight at full throttle, keeps every current within its rating and meets the endurance target.',
+    ],
+    theory: [
+      'Propeller (static, UIUC convention with n in revolutions per second): T = C_T ρ n² D⁴ and P = C_P ρ n³ D⁵. Solving for the hover speed: n = √(T / (C_T ρ D⁴)). The ratio C_T^1.5/(√2 C_P) is the figure of merit, typically 0.5–0.75 for small propellers.',
+      'Brushless DC motor: torque constant K_t = 60/(2π K_v) N·m/A, current I = Q/K_t + I₀ (I₀ covers iron and friction losses), voltage V = 60 n/K_v + I R. Efficiency is P_shaft/(V I); it peaks at moderate current, so an oversized or undersized motor wastes energy.',
+      'Battery: terminal voltage V = V_oc(SOC) − I R_pack. For an electrical power P the current is I = (V_oc − √(V_oc² − 4 R P))/(2R); if V_oc² < 4RP the pack cannot deliver P at all. Endurance follows from discharging step by step until the planned usable fraction (often 80 %) is used.',
+      'Throttle ≈ V_motor/V_battery. Full-throttle thrust comes from solving the motor equation at the full battery voltage; the thrust-to-weight ratio should be about 2 for multirotors.',
+      'Hot and high: density falls with altitude and temperature. At 4500 m on an ISA + 30 °C day, ρ is about 0.7 kg/m³ instead of 1.225 kg/m³, so the same thrust needs more speed and much more power — size for the worst operating case.',
+    ],
+    equations: [
+      { expression: 'T = C_T ρ n² D⁴,   P = C_P ρ n³ D⁵', note: 'Static propeller.' },
+      { expression: 'I = Q/K_t + I₀,   V = 60 n/K_v + I R,   K_t = 60/(2π K_v)', note: 'Brushless DC motor.' },
+      { expression: 'I_batt = (V_oc − √(V_oc² − 4 R P)) / (2R)', note: 'Battery current for power P.' },
+      { expression: 'T/W = n_rotors T_max / (m g₀)', note: 'Thrust-to-weight ratio.' },
+    ],
+    variables: [
+      { symbol: 'C_T, C_P', meaning: 'Static thrust and power coefficients', unit: '—' },
+      { symbol: 'n', meaning: 'Propeller speed', unit: 'rev/s (rpm/60)' },
+      { symbol: 'K_v', meaning: 'Motor velocity constant', unit: 'rpm/V' },
+      { symbol: 'R, I₀', meaning: 'Winding resistance, no-load current', unit: 'Ω, A' },
+      { symbol: 'R_pack', meaning: 'Battery internal resistance', unit: 'Ω' },
+      { symbol: 'V_oc', meaning: 'Open-circuit battery voltage', unit: 'V' },
+    ],
+    example: () => {
+      const op = rotorOperatingPoint({ thrust: (1.4 * 9.80665) / 4, rho: 1.225, diameter: 0.254, ct: 0.11, cp: 0.044, kv: 920, resistance: 0.1, noLoadCurrent: 0.5 });
+      return {
+        title: 'A 1.4 kg quadcopter on 10-inch propellers and 920 K_v motors',
+        steps: [
+          `Thrust per rotor T = 1.4 × 9.80665 / 4 = ${n(1.4 * 9.80665 / 4, 4)} N; sea level ρ = 1.225 kg/m³; C_T = 0.11, C_P = 0.044, D = 0.254 m.`,
+          `n = √(T / (C_T ρ D⁴)) = ${n(op.n, 4)} rev/s = ${n(op.rpm, 4)} rpm.`,
+          `Shaft power P = C_P ρ n³ D⁵ = ${n(op.shaftPower, 4)} W per rotor; torque Q = P/(2πn) = ${n(op.torque, 3)} N·m.`,
+          `K_t = 60/(2π × 920) = ${n(op.kt, 4)} N·m/A, so I = Q/K_t + 0.5 = ${n(op.current, 3)} A.`,
+          `V = 60 n / K_v + I R = ${n(op.voltage, 3)} V: about ${n((op.voltage / 15.2) * 100, 2)} % throttle on a 4S pack (≈15.2 V loaded). Motor efficiency ${n(op.efficiency * 100, 3)} %.`,
+          `Four rotors draw ${n(4 * op.electricalPower, 3)} W; with ESC losses and about 7 W of avionics, roughly ${n((4 * op.electricalPower) / 0.95 + 7, 3)} W from the battery.`,
+        ],
+      };
+    },
+    calculator: 'motor',
+    practical: [
+      'Use measured C_T and C_P (for example from the UIUC Propeller Data Site) for the exact propeller, and cite them.',
+      'Check the motor datasheet current limit and the ESC rating against the full-throttle current, not just hover.',
+      'Enter the battery’s measured internal resistance; it grows as the pack ages and in the cold.',
+      'Re-check the match at the highest, hottest operating site.',
+    ],
+    mistakes: [
+      'Choosing a high-K_v motor for a large propeller: it needs high current and runs hot.',
+      'Ignoring voltage sag: a nearly empty pack under load may not reach full-throttle thrust.',
+      'Counting the rated capacity as fully usable.',
+      'Using sea-level numbers for a mountain or hot-day operation.',
+    ],
+    quiz: [
+      {
+        question: 'At constant thrust, the propeller diameter is increased by 10 %. The required speed n changes by about:',
+        options: ['−21 %', '−17 %', '−10 %', '+10 %'],
+        answer: 1,
+        explanation: 'n ∝ D⁻² at constant thrust: 1.1⁻² = 0.826, about −17 %.',
+      },
+      {
+        question: 'A motor has K_v = 1000 rpm/V. Its torque constant K_t is about:',
+        options: ['0.0095 N·m/A', '0.105 N·m/A', '1.05 N·m/A', '9.55 N·m/A'],
+        answer: 0,
+        explanation: 'K_t = 60/(2π × 1000) = 0.00955 N·m/A.',
+      },
+      {
+        question: 'Why does hover need more power on a hot day at high altitude?',
+        options: ['Gravity is stronger', 'The air is less dense, so the propeller must spin faster for the same thrust', 'The battery is lighter', 'The motor’s K_v rises'],
+        answer: 1,
+        explanation: 'T = C_T ρ n² D⁴: lower ρ needs higher n, and power grows with n³ (net ∝ 1/√ρ at constant thrust).',
+      },
+    ],
+    references: [
+      'J. B. Brandt, R. W. Deters, G. K. Ananda, O. D. Dantsker, M. S. Selig, UIUC Propeller Database, University of Illinois at Urbana-Champaign.',
+      'Q. Quan, Introduction to Multicopter Design and Control, Springer, 2017 — chapter 4 (propulsion matching).',
+      'J. G. Leishman, Principles of Helicopter Aerodynamics, 2nd ed., Cambridge University Press, 2006.',
+    ],
+  },
+  {
+    id: 'balloon-glidesonde',
+    title: 'Balloon-launched glide-sondes: ascent, release, stall, glide',
+    icon: 'balloon',
+    level: 'Atmospheric research',
+    minutes: 20,
+    summary: 'How a latex balloon carries an aircraft to 33 km, why it falls before it can fly after release, and how a glide-sonde samples the atmosphere on the way down.',
+    beginner: [
+      'A sounding balloon rises because the gas inside is lighter than the air it displaces. As it climbs the outside pressure falls, the balloon swells, and at its burst diameter it pops — so the release must happen well below the burst altitude.',
+      'At 33 km the air is about 1 % as dense as at sea level. When the aircraft is released it has almost no airspeed, so its wings cannot lift: it falls nose-down (the stall phase) until it is fast enough to pull out, which can take several hundred metres and speeds above 100 m/s.',
+      'Then it glides, sinking slowly while its sensors measure temperature, humidity, pressure and wind. Because it sinks slower and slower as the air thickens, the vertical resolution of the measurements improves on the way down. A hybrid glide-sonde starts its motor near the end to fly back for recovery.',
+    ],
+    theory: [
+      'Balloon lift: with the gas at ambient temperature and pressure, gross lift L = n_gas (M_air − M_gas) g is constant with height, while the volume V = n_gas R T/p grows. Free lift F = L − total weight drives the ascent: w = √(2F/(ρ C_D π r²)).',
+      'Burst: the balloon bursts when its diameter reaches the burst diameter, so the burst altitude is where V(h) = π d³/6. More gas raises the ascent rate but lowers the burst altitude.',
+      'After release the 2-D point-mass equations are m dV/dt = −D − W sin γ and m V dγ/dt = L − W cos γ. With L = C_L ½ρV² S limited by C_Lmax and the load-factor limit n_max, the drop ends when q is large enough to curve the path up to the glide angle.',
+      'Steady glide at the best lift coefficient C_L* = √(C_D0/k) gives (L/D)max = 1/(2√(C_D0 k)) and airspeed V = √(2W/(ρ S C_L*)), which falls as density rises; the sink rate V/(L/D) falls with it.',
+      'At 30 km the Reynolds number of a small wing is only about 20 000–50 000, where aerofoils behave very differently from the textbook; Mach number during the pull-out can reach 0.3–0.6. Both need low-Re aerofoil data and careful structural limits.',
+    ],
+    equations: [
+      { expression: 'L_gross = n_gas (M_air − M_gas) g,   V = n_gas R T / p', note: 'Balloon lift and volume.' },
+      { expression: 'w = √(2 F / (ρ C_D π r²))', note: 'Ascent rate from free lift F.' },
+      { expression: 'm V̇ = −D − W sin γ,   m V γ̇ = L − W cos γ', note: 'Release and pull-out dynamics.' },
+      { expression: '(L/D)max = 1 / (2 √(C_D0 k)),   k = 1/(π e AR)', note: 'Best glide.' },
+      { expression: 'Δz = w_sink Δt_s', note: 'Sonde vertical resolution.' },
+    ],
+    variables: [
+      { symbol: 'F', meaning: 'Free lift', unit: 'kg (as weighed), N in equations' },
+      { symbol: 'd_burst', meaning: 'Burst diameter', unit: 'm' },
+      { symbol: 'γ', meaning: 'Flight-path angle', unit: 'rad' },
+      { symbol: 'n_max', meaning: 'Load-factor limit in the pull-out', unit: '—' },
+      { symbol: 'w_sink', meaning: 'Sink rate', unit: 'm/s' },
+    ],
+    example: () => {
+      const s = defaultSounding();
+      const a = balloonAscent(s.params, 1.5, 'helium');
+      return {
+        title: 'A 1.5 kg glide-sonde on a 2000 g balloon',
+        steps: [
+          `Balloon 2.0 kg, flight train 0.25 kg, aircraft 1.5 kg, free lift 1.2 kg: gross lift ${n(a.grossLift, 3)} kg, neck lift ${n(a.neckLift, 3)} kg.`,
+          `Helium needed: ${n(a.launchVolume, 3)} m³ (${n(a.gasMass * 1000, 3)} g of gas), launch diameter ${n(a.launchDiameter, 3)} m.`,
+          `Ascent rate at launch ${n(a.launchRate, 3)} m/s; the model reaches 33 km in ${n(a.timeToRelease / 60, 3)} min.`,
+          `Predicted burst at ${n((a.burstAltitude - s.params.launchElevation) / 1000, 3)} km above ground: only about 1 km above release, so a larger balloon or less free lift would give a safer margin.`,
+          'The Balloon & Glide-Sonde page continues with the release, pull-out, glide and powered stages for your own design.',
+        ],
+      };
+    },
+    calculator: 'balloon',
+    practical: [
+      'Weigh the neck lift at the filler with a calibrated weight; free lift sets the ascent rate.',
+      'Keep a burst margin of 3 km or more; balloons age and burst altitudes scatter.',
+      'Use low-Reynolds-number aerofoil data for the glide and limit the pull-out load factor to what the structure has been tested for.',
+      'Insulate and heat the battery and electronics: the stratosphere is around −45 °C to −60 °C.',
+      'Obtain airspace clearance and plan recovery areas from wind-aware predictions.',
+    ],
+    mistakes: [
+      'Releasing too close to the predicted burst altitude.',
+      'Using sea-level aerofoil data at Re ≈ 20 000.',
+      'Forgetting that avionics drain the battery throughout the ascent and glide, before the powered stage.',
+      'Ignoring Mach number during the stall drop in thin air.',
+    ],
+    quiz: [
+      {
+        question: 'Why does the balloon’s gross lift stay nearly constant as it rises?',
+        options: ['Gravity weakens', 'The gas expands so it always displaces the same mass of air', 'The balloon gets lighter', 'Temperature is constant'],
+        answer: 1,
+        explanation: 'With the gas at ambient p and T, the displaced air mass equals n_gas M_air at every altitude.',
+      },
+      {
+        question: 'Right after release at 33 km the aircraft:',
+        options: ['Glides immediately', 'Falls nose-down until dynamic pressure allows a pull-out', 'Climbs', 'Hovers'],
+        answer: 1,
+        explanation: 'With almost no airspeed q ≈ 0, so lift is negligible until the drop builds speed.',
+      },
+      {
+        question: 'Sink rate halves while the sample interval stays 1 s. The vertical resolution:',
+        options: ['Doubles (worse)', 'Halves (finer)', 'Stays the same', 'Depends on the balloon'],
+        answer: 1,
+        explanation: 'Δz = w_sink Δt: half the sink rate gives half the spacing between samples.',
+      },
+    ],
+    references: [
+      'J. D. Anderson, Introduction to Flight — gliding flight and the standard atmosphere.',
+      'Cambridge University Spaceflight / SondeHub, Tawhiri balloon flight predictor documentation.',
+      'M. S. Selig et al., Summary of Low-Speed Airfoil Data (UIUC) — low-Reynolds-number aerofoil behaviour.',
+    ],
+  },
 ]);
 
 export const LEARNING_PATHS = Object.freeze([
   { title: 'Engineering foundations', lessons: ['data-provenance', 'si-units', 'standard-atmosphere'], status: 'available' },
   { title: 'UAV configuration fundamentals', lessons: ['rotor-layout-hover', 'wing-planform-tail'], status: 'available' },
   { title: 'Electronics, flight controllers and avionics', lessons: ['avionics-power-interfaces'], status: 'available' },
-  { title: 'RF links and software-defined radio', build: 3 },
-  { title: 'Power electronics, motors and batteries', build: 4 },
+  { title: 'Propulsion, motors and batteries', lessons: ['propulsion-energy'], status: 'available' },
+  { title: 'Stratospheric sounding and glide-sondes', lessons: ['balloon-glidesonde'], status: 'available' },
+  { title: 'RF links and software-defined radio', build: 7 },
   { title: 'Aerodynamics and structures', build: 5 },
   { title: 'Flight dynamics and control', build: 6 },
   { title: 'Computer vision and sensor fusion', build: 8 },

@@ -9,6 +9,8 @@ import { isa, densityAltitude, MIN_ALTITUDE, MAX_ALTITUDE } from '../../engineer
 import { formatNumber } from '../../utils/format.js';
 import { lineChart } from '../../visualisation/plots.js';
 import { wingPlanform } from '../../engineering/geometry.js';
+import { rotorOperatingPoint } from '../../engineering/propulsion.js';
+import { balloonAscent, defaultSounding } from '../../engineering/sounding.js';
 import { G0 } from '../../engineering/atmosphere.js';
 
 const n = (value, digits = 5) => formatNumber(value, { digits });
@@ -406,6 +408,83 @@ function regulatorCalculator() {
   );
 }
 
+// ---- Motor + propeller operating point ----------------------------------------------------
+
+function motorCalculator() {
+  const state = { thrust: '350', diameter: '10', ct: '0.11', cp: '0.044', kv: '920', resistance: '100', i0: '0.5', altitude: '0' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('mc')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.thrust.value <= 0 || v.diameter.value <= 0 || v.ct.value <= 0 || v.cp.value <= 0 || v.kv.value <= 0 || v.resistance.value < 0 || v.i0.value < 0 || v.altitude.value < MIN_ALTITUDE || v.altitude.value > 20000) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter positive thrust, diameter, coefficients and K_v, non-negative R and I₀, and an altitude between −5 000 and 20 000 m.'));
+      return;
+    }
+    const op = rotorOperatingPoint({ thrust: toSI(v.thrust.value, 'gf'), rho: isa(v.altitude.value).density, diameter: toSI(v.diameter.value, 'in'), ct: v.ct.value, cp: v.cp.value, kv: v.kv.value, resistance: toSI(v.resistance.value, 'mΩ'), noLoadCurrent: v.i0.value });
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Propeller speed', `${n(op.rpm, 4)} rpm`, 'n = √(T/(C_T ρ D⁴))'],
+          ['Shaft power', `${n(op.shaftPower, 4)} W`, 'P = C_P ρ n³ D⁵'],
+          ['Torque', `${n(op.torque * 1000, 4)} N·mm`, 'Q = P/(2πn)'],
+          ['Motor current', `${n(op.current, 4)} A`, 'I = Q/K_t + I₀'],
+          ['Motor voltage', `${n(op.voltage, 4)} V`, 'V = 60n/K_v + IR'],
+          ['Motor efficiency', `${n(op.efficiency * 100, 3)} %`, provenanceBadge('analytical')],
+          ['Figure of merit of the propeller', n(v.ct.value ** 1.5 / (Math.SQRT2 * v.cp.value), 3), 'C_T^1.5/(√2 C_P)'],
+        ],
+        'Motor operating point',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('thrust', 'Thrust per rotor', 'gf'), make('diameter', 'Propeller diameter', 'in'), make('ct', 'C_T', ''), make('cp', 'C_P', ''), make('kv', 'K_v', 'rpm/V'), make('resistance', 'Winding resistance', 'mΩ'), make('i0', 'No-load current', 'A'), make('altitude', 'Altitude (ISA)', 'm')),
+    output,
+    h('p', { class: 'calc__note' }, 'Static coefficients; steady hover. Gram-force (gf) is the thrust unit on most propeller test sheets.'),
+  );
+}
+
+// ---- Balloon ascent and burst ---------------------------------------------------------------
+
+function balloonCalculator() {
+  const base = defaultSounding().params;
+  const state = { balloon: '2000', burst: '10.5', payload: '1.5', train: '0.25', free: '1.2', release: '33' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('bc')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.balloon.value <= 0 || v.burst.value <= 0 || v.payload.value <= 0 || v.train.value < 0 || v.free.value <= 0 || v.release.value <= 0 || v.release.value > 45) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter positive masses, burst diameter and free lift, and a release altitude up to 45 km.'));
+      return;
+    }
+    const a = balloonAscent({ ...base, balloonMass: toSI(v.balloon.value, 'g'), burstDiameter: v.burst.value, trainMass: v.train.value, freeLift: v.free.value, launchElevation: 0, releaseAltitude: v.release.value * 1000 }, v.payload.value);
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Neck lift to weigh off', `${n(a.neckLift, 4)} kg`, 'train + aircraft + free lift'],
+          ['Helium at launch', `${n(a.launchVolume, 4)} m³`, `${n(a.launchDiameter, 3)} m diameter`],
+          ['Ascent rate at launch', `${n(a.launchRate, 3)} m/s`, 'w = √(2F/(ρ C_D A))'],
+          ['Predicted burst altitude', a.burstAltitude === null ? 'above 60 km' : `${n(a.burstAltitude / 1000, 3)} km`, provenanceBadge('analytical')],
+          [a.reachesRelease ? 'Time to release altitude' : 'Bursts before release!', a.reachesRelease ? `${n(a.timeToRelease / 60, 3)} min` : '—', a.reachesRelease ? `mean ${n(a.meanRate, 3)} m/s` : 'use a larger balloon or less free lift'],
+        ],
+        'Balloon calculation result',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('balloon', 'Balloon mass', 'g'), make('burst', 'Burst diameter', 'm'), make('payload', 'Aircraft mass', 'kg'), make('train', 'Flight train', 'kg'), make('free', 'Free lift', 'kg'), make('release', 'Release altitude', 'km')),
+    output,
+    h('p', { class: 'calc__note' }, 'Helium, launch at sea level, constant drag coefficient 0.3. Real burst altitudes scatter by a few kilometres.'),
+  );
+}
+
 export const WIDGETS = Object.freeze({
   uncertainty: uncertaintyCalculator,
   units: unitConverter,
@@ -413,4 +492,6 @@ export const WIDGETS = Object.freeze({
   hover: hoverCalculator,
   planform: planformCalculator,
   regulator: regulatorCalculator,
+  motor: motorCalculator,
+  balloon: balloonCalculator,
 });

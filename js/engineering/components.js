@@ -53,6 +53,7 @@ export const SPEC_FIELDS = Object.freeze({
   cells: { label: 'Cells in series', unit: '1', displayUnits: ['1'], min: 1, max: 24, integer: true },
   capacity: { label: 'Capacity', unit: 'C', displayUnits: ['mAh', 'Ah'], min: 0, max: 1e7 },
   maxContinuousCurrent: { label: 'Rated continuous current', unit: 'A', displayUnits: ['A'], min: 0, max: 2000 },
+  internalResistance: { label: 'Pack internal resistance', unit: 'Ω', displayUnits: ['mΩ', 'Ω'], min: 0.0001, max: 5, optional: true, help: 'DC internal resistance of the whole pack (datasheet or measured). Sets voltage sag under load; estimated from chemistry and capacity when empty.' },
   loadCurrent: { label: 'Expected operating current (estimate)', unit: 'A', displayUnits: ['A'], min: 0, max: 2000, optional: true, help: 'Your estimate of the current each ESC draws in typical flight. Propulsion models arrive in Build 4.' },
   frequency: { label: 'Radio frequency', unit: 'Hz', displayUnits: ['MHz', 'GHz'], min: 1e6, max: 1e11, optional: true, help: 'Permitted bands and power limits depend on the country of operation.' },
   txPower: { label: 'Transmit power', unit: 'W', displayUnits: ['mW', 'W'], min: 0, max: 100, optional: true },
@@ -62,7 +63,7 @@ const CONSUMER = ['supplyVoltageMin', 'supplyVoltageMax', 'supplyCurrent', 'logi
 
 /** Component types: their specification fields, interfaces they may have, and defaults. */
 export const COMPONENT_TYPES = Object.freeze([
-  { id: 'battery', label: 'Battery', group: 'power', fields: ['chemistry', 'cells', 'capacity', 'maxContinuousCurrent', 'mass'], interfaces: [], supplies: true, quantity: false },
+  { id: 'battery', label: 'Battery', group: 'power', fields: ['chemistry', 'cells', 'capacity', 'maxContinuousCurrent', 'internalResistance', 'mass'], interfaces: [], supplies: true, quantity: false },
   { id: 'regulator', label: 'Power module / regulator (BEC)', group: 'power', fields: ['supplyVoltageMin', 'supplyVoltageMax', 'outputVoltage', 'maxOutputCurrent', 'efficiency', 'supplyCurrent', 'mass'], interfaces: ['i2c'], supplies: true, quantity: false },
   { id: 'flight-controller', label: 'Flight controller', group: 'control', fields: [...CONSUMER, 'outputVoltage', 'maxOutputCurrent'], interfaces: ['uart', 'i2c', 'spi', 'can', 'pwm', 'usb', 'ethernet'], supplies: 'optional', quantity: false },
   { id: 'companion', label: 'Companion computer', group: 'control', fields: CONSUMER, interfaces: ['uart', 'i2c', 'spi', 'usb', 'ethernet', 'can'], quantity: false },
@@ -80,7 +81,7 @@ export const LIMITS = Object.freeze({ items: 200, connections: 600, name: 120, s
 
 export const emptyComponents = () => ({ items: [], connections: [] });
 
-const DEFAULT_SPECS = { supplyVoltageMin: 4.5, supplyVoltageMax: 5.5, supplyCurrent: 0.1, logicLevel: 3.3, tolerant5V: false, mass: 0.01, outputVoltage: null, maxOutputCurrent: null, efficiency: 0.9, chemistry: 'lipo', cells: 4, capacity: 5000 * 3.6, maxContinuousCurrent: 30, loadCurrent: null, frequency: null, txPower: null };
+const DEFAULT_SPECS = { supplyVoltageMin: 4.5, supplyVoltageMax: 5.5, supplyCurrent: 0.1, logicLevel: 3.3, tolerant5V: false, mass: 0.01, outputVoltage: null, maxOutputCurrent: null, efficiency: 0.9, chemistry: 'lipo', cells: 4, capacity: 5000 * 3.6, maxContinuousCurrent: 30, internalResistance: null, loadCurrent: null, frequency: null, txPower: null };
 
 /** Create a component (custom, or from a catalogue entry). */
 export function createComponent({ type, name, catalogueEntry = null, provenance, source = '', specs = {}, interfaces = {}, quantity = 1 } = {}) {

@@ -7,6 +7,7 @@ import { icon } from '../ui/icons.js';
 import { badge, button, card, emptyState, formatQuantity, keyValueList, pageHeader, progressBar, severityIcon } from '../ui/components.js';
 import { categoryInfo, applicationInfo, stageInfo } from '../project-schema.js';
 import { REQUIREMENT_FIELDS, reviewSummary } from '../engineering/requirements.js';
+import { flowOverview } from '../ui/design-flow.js';
 import { installCard, isInstalled } from '../ui/install.js';
 import { BUILDS, MODULES, buildStatus } from './module-registry.js';
 import { storageStatus } from '../database.js';
@@ -195,7 +196,7 @@ function scopeCard() {
     title: 'Scope and model fidelity',
     icon: 'shield',
     body: [
-      h('p', null, 'AEROLAB X is for civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue research aircraft. It contains no weapon, targeting or harmful-payload functions, and AI experiments stay inside the simulation.'),
+      h('p', null, 'AEROLAB X supports civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue aircraft, and non-weapon defence roles: logistics and resupply, surveillance and reconnaissance, meteorological support and high-altitude operations. It contains no weapon, targeting or harmful-payload functions, and AI experiments stay inside the simulation.'),
       h('p', { class: 'muted' }, FIDELITY_DISCLAIMER),
     ],
   });
@@ -248,6 +249,7 @@ export async function mount(container, ctx) {
       h(
         'div',
         { class: 'page-grid dashboard-grid' },
+        store.doc ? card({ title: 'Design flow', icon: 'roadmap', class: 'span-2', description: 'Follow the steps in order; each page links to the next. Status updates as you work.', body: flowOverview(ctx) }) : null,
         gettingStartedCard(ctx, list),
         currentProjectCard(ctx, versions.length),
         requirementsCard(ctx),

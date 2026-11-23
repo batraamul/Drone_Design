@@ -77,3 +77,35 @@ export function exampleQuadSet({ createComponent, createConnection }) {
     ],
   };
 }
+
+// ---- Motors and propellers (Build 4) — ILLUSTRATIVE --------------------------------------
+// Typical classes with round numbers. For real designs use the motor datasheet and measured
+// propeller coefficients, for example from the UIUC Propeller Data Site.
+const IN = 0.0254;
+export const MOTOR_CATALOGUE = Object.freeze([
+  { catalogueId: 'ill-mot-1104-7500', name: 'Example 1104 7500 K_v micro motor', summary: 'For 2-inch propellers on 1–2S micro quadcopters.', specs: { kv: 7500, resistance: 0.22, noLoadCurrent: 0.35, maxCurrent: 7, mass: 0.006 } },
+  { catalogueId: 'ill-mot-2212-920', name: 'Example 2212 920 K_v motor', summary: 'Classic 3–4S motor for 10-inch propellers on 450–550 mm quadcopters.', specs: { kv: 920, resistance: 0.1, noLoadCurrent: 0.5, maxCurrent: 20, mass: 0.056 } },
+  { catalogueId: 'ill-mot-2814-700', name: 'Example 2814 700 K_v motor', summary: '4S motor for 11–13-inch propellers.', specs: { kv: 700, resistance: 0.065, noLoadCurrent: 0.6, maxCurrent: 30, mass: 0.105 } },
+  { catalogueId: 'ill-mot-4114-400', name: 'Example 4114 400 K_v motor', summary: '6S motor for 15-inch propellers on hexacopters and VTOL lift.', specs: { kv: 400, resistance: 0.09, noLoadCurrent: 0.45, maxCurrent: 30, mass: 0.16 } },
+  { catalogueId: 'ill-mot-3520-520', name: 'Example 3520 520 K_v cruise motor', summary: '4–6S motor for 12–14-inch cruise propellers on 2–5 kg fixed wings.', specs: { kv: 520, resistance: 0.05, noLoadCurrent: 0.8, maxCurrent: 45, mass: 0.2 } },
+]);
+export const PROPELLER_CATALOGUE = Object.freeze([
+  { catalogueId: 'ill-prop-2x1.5', name: 'Example 2 × 1.5 in micro propeller', summary: 'Micro quadcopter propeller.', specs: { diameter: 2 * IN, pitch: 1.5 * IN, ct: 0.1, cp: 0.05, mass: 0.0005 } },
+  { catalogueId: 'ill-prop-10x4.5', name: 'Example 10 × 4.5 in propeller', summary: 'Multirotor propeller; coefficients of the order measured for this class (static).', specs: { diameter: 10 * IN, pitch: 4.5 * IN, ct: 0.11, cp: 0.044, mass: 0.012 } },
+  { catalogueId: 'ill-prop-12x5.5', name: 'Example 12 × 5.5 in propeller', summary: 'Multirotor propeller for hexacopters.', specs: { diameter: 12 * IN, pitch: 5.5 * IN, ct: 0.11, cp: 0.043, mass: 0.016 } },
+  { catalogueId: 'ill-prop-15x5', name: 'Example 15 × 5 in carbon propeller', summary: 'Large multirotor and VTOL lift propeller.', specs: { diameter: 15 * IN, pitch: 5 * IN, ct: 0.1, cp: 0.038, mass: 0.024 } },
+  { catalogueId: 'ill-prop-13x8', name: 'Example 13 × 8 in cruise propeller', summary: 'Fixed-wing cruise propeller (static coefficients given).', specs: { diameter: 13 * IN, pitch: 8 * IN, ct: 0.1, cp: 0.058, mass: 0.022 } },
+]);
+export const motorEntry = (id) => MOTOR_CATALOGUE.find((e) => e.catalogueId === id) ?? null;
+export const propellerEntry = (id) => PROPELLER_CATALOGUE.find((e) => e.catalogueId === id) ?? null;
+
+/** Reasonable starting motor + propeller for a configuration (closest propeller size). */
+export function defaultPropulsion(configuration, settings) {
+  const params = configuration?.params ?? {};
+  const D = params.liftPropDiameter ?? params.propDiameter ?? 0.254;
+  const prop = [...PROPELLER_CATALOGUE].sort((a, b) => Math.abs(a.specs.diameter - D) - Math.abs(b.specs.diameter - D))[0];
+  const motorId = D < 0.08 ? 'ill-mot-1104-7500' : D <= 0.27 ? 'ill-mot-2212-920' : D <= 0.34 ? (params.span ? 'ill-mot-3520-520' : 'ill-mot-2814-700') : 'ill-mot-4114-400';
+  const motor = motorEntry(motorId);
+  const part = (e) => ({ name: e.name, catalogueId: e.catalogueId, provenance: 'illustrative', source: '', specs: { ...e.specs } });
+  return { motor: part(motor), propeller: part(prop), batteryId: null, settings: { ...settings } };
+}

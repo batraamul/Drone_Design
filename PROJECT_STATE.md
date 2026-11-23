@@ -4,13 +4,13 @@ Single source of truth for where development stands. Read this at the start of e
 
 | Item | State |
 |---|---|
-| Current build | **Build 3 — Avionics and electronics: complete** (Builds 1–2 complete) |
-| Application version | 0.4.0 (Build 3) |
+| Current build | **Build 4 — Propulsion and energy: complete**, plus design flow, summary and early Build 13 (Builds 1–3 complete) |
+| Application version | 0.5.0 (Build 4) |
 | Licence | Apache-2.0 (LICENSE, NOTICE, CITATION.cff) since v0.4.0 |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
-| Last successful test run | 2026-11-22 — `npm test`: structural 12/12 groups; Node tests 93/93; Playwright 31/31 (desktop + mobile Chromium) |
+| Last successful test run | 2026-11-23 — `npm test`: structural 12/12 groups; Node tests 110/110; Playwright 36/36 (desktop + mobile Chromium, software WebGL) |
 
 ## Completed (Build 1)
 
@@ -58,9 +58,36 @@ Single source of truth for where development stands. Read this at the start of e
 - Lesson "Avionics power budgets, regulators and logic levels" with a regulator and battery-life calculator; 7 new glossary terms.
 - Licence: Apache-2.0 with NOTICE and CITATION.cff. Roadmap extended with Builds 13 (stratospheric sounding), 14 (defence-style assurance, civilian scope) and 15 (open publication). The Stratospheric Sounding Lab appears as a planned module (21 navigation entries).
 
+## Completed (v0.5.0 — Build 4 and more)
+
+- **Propulsion & Energy** (`js/engineering/propulsion.js`, page `js/modules/propulsion.js`, routes `propulsion` and `power`):
+  - motor and propeller data with provenance;
+  - the hover operating point, throttle, thrust versus throttle and full-throttle T/W;
+  - hot-and-high (ISA + ΔT);
+  - a battery OCV curve with internal resistance and sag;
+  - time-stepped endurance;
+  - a mass budget against MTOW;
+  - fixed-wing cruise power from an estimated L/D.
+
+  Checks PR-*. Project schema v4 (`modules.propulsion`). Illustrative motors and propellers are in the catalogue.
+- **Design flow** (`js/ui/design-flow.js`): seven steps (targets → layout → avionics → propulsion → 3D → balloon mission → summary), each with a "done when" rule, a step bar and Back/Next on every design page, a dashboard card and links to its lesson.
+- **Design Summary** (`js/modules/summary.js`, nav "Design Summary"): flow status, open problems, targets, top view, layout dimensions, parts list with CSV export, key results with model and provenance, balloon-mission stages, and paper and patent guidance. It prints as a build sheet.
+- **Stratospheric Sounding Lab, early Build 13** (`js/engineering/sounding.js`, `js/modules/sounding.js`):
+  - a latex balloon to 33 km AGL with lift budget, ascent rate and burst altitude;
+  - release from rest, stall drop and load-limited pull-out (2-D RK4), with Mach and Re;
+  - best-L/D glide with sonde vertical resolution;
+  - a hybrid powered stage on the energy left after the avionics drain;
+  - SondeHub/Tawhiri wind-aware ascent (online) with KML export.
+
+  Checks SD-*. Project schema v5 (`modules.sounding`, disabled by default). CSP connect-src allows https://api.v2.sondehub.org.
+- **Courses, books & tools** (`#/learning/resources`): NPTEL (IIT Kanpur UAV courses), Coursera Aerial Robotics, MIT OCW 16.333, books, UIUC propeller and aerofoil data, OpenVSP, XFLR5, FreeCAD, Blender, ArduPilot, PX4, QGroundControl, Mission Planner, Gazebo, QGIS, SondeHub, Defence Science Journal, InPASS, Google Patents and PATENTSCOPE. Links checked 2026-11-23.
+- **3D export:** STL (Z-up, metres) and glTF/GLB through the vendored three.js exporters.
+- **Lessons:** "Matching motor, propeller and battery" (motor calculator) and "Balloon-launched glide-sondes" (balloon calculator).
+- **Applications** now include non-weapon defence roles (logistics, surveillance and reconnaissance, met support, high-altitude operations) and disaster relief; the scope text is updated. Weapons, targeting and harmful payloads remain excluded.
+
 ## Pending modules
 
-3D Studio mass/CG/placement (Build 5) · Avionics link budget and SDR (Build 7) · Component Library motors and propellers (Build 4) · Propulsion Laboratory, Power & Energy (Build 4) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
+3D Studio mass/CG/placement (Build 5) · Avionics link budget and SDR (Build 7) · Propeller at forward speed (Build 5) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab remainder: sensor models, WMO export, glide wind drift (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
 
 ## Known issues and limitations
 
@@ -70,6 +97,8 @@ Single source of truth for where development stands. Read this at the start of e
 - Interactive charts are basic SVG; Chart.js arrives in Build 4.
 - The 3D model is a conceptual shape: flat surfaces, no aerofoil thickness, landing gear or components yet.
 - The geometry review uses MTOW from the requirements; there is no mass estimate yet (Build 4).
+- The glide-sonde simulation has no wind in the glide and uses user-supplied C_D0/C_Lmax; the balloon ascent rate rises with height under the constant-C_D assumption (real balloons climb at a more nearly constant rate).
+- The fixed-wing cruise power uses an estimated L/D until Build 5.
 - Component data merges as one unit in Drive sync: if two devices edit components at the same time, the later edit set wins. Other project fields still merge field by field.
 - When a Drive merge combines a category change with a layout edit from another device, the Architecture page asks for a layout. This is handled, but the user has to choose one.
 - Projects are per browser and per origin (hosted site vs. localhost); move them with backups.
@@ -99,4 +128,4 @@ Single source of truth for where development stands. Read this at the start of e
 
 ## Next exact task
 
-**Build 4, task 1:** motor and propeller data model (Kv, resistance, no-load current, limits; diameter, pitch, C_T/C_P), with provenance per value and project schema v4 with a 3→4 migration and tests. See `docs/roadmap.md` (Build 4 plan).
+**Build 5, task 1:** aerodynamics. Add a lifting-line or vortex-lattice wing model, aerofoil polars including low-Reynolds data, a drag build-up and the L/D polar. These replace the L/D estimates in Propulsion & Energy and the glide-sonde C_D0/C_Lmax inputs. See `docs/roadmap.md` (Build 5 plan).

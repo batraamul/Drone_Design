@@ -238,6 +238,23 @@ export async function createViewer(container) {
       else requestRender();
     },
     setView,
+    /** Export the current model. format: 'stl' (binary STL, metres) or 'gltf' (binary .glb). @returns {Promise<Blob>} */
+    async exportModel(format) {
+      if (!model) throw new Error('No model to export');
+      // Export Z-up for CAD tools (y forward, x to the right): rotate the Y-up display frame by +90° about X.
+      const root = new THREE.Group();
+      root.rotation.x = Math.PI / 2;
+      root.add(model.group.clone(true));
+      root.updateMatrixWorld(true);
+      if (format === 'stl') {
+        const { STLExporter } = await import('../../vendor/three/STLExporter.js');
+        const data = new STLExporter().parse(root, { binary: true });
+        return new Blob([data], { type: 'model/stl' });
+      }
+      const { GLTFExporter } = await import('../../vendor/three/GLTFExporter.js');
+      const data = await new GLTFExporter().parseAsync(model.group, { binary: true });
+      return new Blob([data], { type: 'model/gltf-binary' });
+    },
     destroy() {
       observer.disconnect();
       controls.dispose();

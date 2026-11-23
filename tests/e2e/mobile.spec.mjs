@@ -37,7 +37,7 @@ test('Build 2 pages fit small screens with a project open', async ({ page }) => 
   const dialog = page.getByRole('dialog', { name: 'New project' });
   await dialog.getByLabel('Project name').fill('Phone');
   await dialog.getByRole('button', { name: /Create/ }).click();
-  for (const hash of ['#/architecture', '#/design-studio', '#/learning/rotor-layout-hover', '#/learning/wing-planform-tail', '#/avionics', '#/components', '#/learning/avionics-power-interfaces']) {
+  for (const hash of ['#/architecture', '#/design-studio', '#/learning/rotor-layout-hover', '#/learning/wing-planform-tail', '#/avionics', '#/components', '#/learning/avionics-power-interfaces', '#/propulsion', '#/sounding', '#/summary', '#/learning/resources', '#/learning/balloon-glidesonde']) {
     await page.goto(`./${hash}`);
     await expect(page.locator('.view h1')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

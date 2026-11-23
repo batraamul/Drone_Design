@@ -11,6 +11,7 @@ import { layoutInfo } from '../engineering/configuration.js';
 import { VIEW_LABELS, drawView } from '../visualisation/views2d.js';
 import { createViewer, webglAvailable } from '../visualisation/view3d.js';
 import { parameterForm } from './architecture.js';
+import { flowBar } from '../ui/design-flow.js';
 
 const STANDARD_VIEWS = [
   ['iso', 'Perspective'],
@@ -51,6 +52,7 @@ export async function mount(container, ctx) {
     if (!doc) {
       container.replaceChildren(
         header(),
+        flowBar(ctx, 'design-studio'),
         emptyState({
           icon: 'cube',
           title: 'Open a project to see it in 3D',
@@ -82,6 +84,26 @@ export async function mount(container, ctx) {
       { class: 'segmented', role: 'group', 'aria-label': 'Standard views' },
       STANDARD_VIEWS.map(([id, label]) => button({ label, size: 'sm', dataset: { view: id }, onClick: () => viewer?.setView(id) })),
     );
+    const exportAs = async (format) => {
+      if (!viewer) return ctx.notify({ level: 'warning', title: 'Export needs the 3D view', message: 'WebGL is unavailable in this browser.' });
+      try {
+        const blob = await viewer.exportModel(format);
+        const link = h('a', { href: URL.createObjectURL(blob), download: `${store.doc.name.replace(/[^\w-]+/g, '_')}.${format === 'stl' ? 'stl' : 'glb'}` });
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+        ctx.log.info('3d', `Exported ${format.toUpperCase()} model`);
+      } catch (error) {
+        ctx.notify({ level: 'error', title: 'Export failed', message: error.message });
+      }
+    };
+    const exports = h(
+      'div',
+      { class: 'button-row' },
+      button({ label: 'Export STL (FreeCAD, OpenVSP, 3D printing)', icon: 'download', size: 'sm', onClick: () => exportAs('stl') }),
+      button({ label: 'Export glTF (Blender)', icon: 'download', size: 'sm', onClick: () => exportAs('gltf') }),
+    );
     const legend = h(
       'ul',
       { class: 'view3d__legend' },
@@ -92,6 +114,7 @@ export async function mount(container, ctx) {
     form = parameterForm(ctx, doc, { title: 'Dimensions' });
     container.replaceChildren(
       header(),
+      flowBar(ctx, 'design-studio'),
       h(
         'div',
         { class: 'page-grid studio-grid' },
@@ -101,7 +124,7 @@ export async function mount(container, ctx) {
           class: 'span-2',
           actions: [viewButtons],
           description: 'Drag to rotate · right-drag (or two fingers) to pan · scroll or pinch to zoom. Conceptual shape only: surfaces are drawn flat, without aerofoil thickness.',
-          body: h('div', { class: 'stack' }, stage, legend),
+          body: h('div', { class: 'stack' }, stage, legend, exports, h('p', { class: 'muted' }, 'Exports are the conceptual shape in metres (z up, y forward, x to the right): a starting point for detailed CAD, not a manufacturing model.')),
         }),
         form.element,
       ),

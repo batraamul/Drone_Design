@@ -208,7 +208,7 @@ function scopeCard() {
     icon: 'shield',
     class: 'span-2',
     body: [
-      h('p', null, 'AEROLAB X supports civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue research aircraft. It does not implement weapon design or integration, targeting, weapon release or delivery, autonomous attack or harmful payloads. Payload work is limited to cameras, mapping sensors, scientific instruments, communication relay and other benign equipment. AI and autonomy experiments run only in simulation and are never connected to physical flight controls.'),
+      h('p', null, 'AEROLAB X supports civilian, scientific, educational, inspection, mapping, environmental-monitoring and search-and-rescue aircraft, and non-weapon defence roles: logistics and resupply, surveillance and reconnaissance, meteorological support and high-altitude operations. It does not implement weapon design or integration, targeting, weapon release or delivery, autonomous attack or harmful payloads. Payload work is limited to cameras, mapping sensors, scientific instruments, communication relay and other benign equipment. AI and autonomy experiments run only in simulation and are never connected to physical flight controls.'),
       h('p', null, FIDELITY_DISCLAIMER),
       h('h3', { class: 'subheading' }, 'Provenance labels used throughout the application'),
       h(

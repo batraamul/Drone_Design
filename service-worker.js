@@ -12,7 +12,7 @@
  *  - The worker never touches IndexedDB: user projects survive every update.
  */
 const APP_PREFIX = 'aerolab-x';
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 const BUILD_ID = 'dev';
 const CACHE_NAME = `${APP_PREFIX}-v${VERSION}-${BUILD_ID}`;
 
@@ -46,11 +46,16 @@ const PRECACHE_URLS = [
   './js/engineering/configuration.js',
   './js/engineering/electrical.js',
   './js/engineering/geometry.js',
+  './js/engineering/propulsion.js',
+  './js/engineering/sounding.js',
   './js/engineering/provenance.js',
   './js/engineering/requirements.js',
   './js/engineering/units.js',
   './js/modules/architecture.js',
   './js/modules/avionics.js',
+  './js/modules/propulsion.js',
+  './js/modules/sounding.js',
+  './js/modules/summary.js',
   './js/modules/component-library.js',
   './js/modules/dashboard.js',
   './js/modules/design-studio.js',
@@ -62,10 +67,12 @@ const PRECACHE_URLS = [
   './js/modules/learning/glossary.js',
   './js/modules/learning/index.js',
   './js/modules/learning/lessons.js',
+  './js/modules/learning/resources.js',
   './js/modules/learning/widgets.js',
   './js/ui/bottom-panel.js',
   './js/ui/command-palette.js',
   './js/ui/components.js',
+  './js/ui/design-flow.js',
   './js/ui/dialog.js',
   './js/ui/icons.js',
   './js/ui/inspector.js',
@@ -88,7 +95,9 @@ const PRECACHE_URLS = [
   './js/visualisation/plots.js',
   './js/visualisation/view3d.js',
   './js/visualisation/views2d.js',
+  './vendor/three/GLTFExporter.js',
   './vendor/three/OrbitControls.js',
+  './vendor/three/STLExporter.js',
   './vendor/three/three.module.min.js',
 ];
 // PRECACHE-END

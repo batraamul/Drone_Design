@@ -10,6 +10,7 @@ import { PROJECT_CATEGORIES, categoryInfo } from '../project-schema.js';
 import { PROPULSION_OPTIONS, defaultConfiguration, layoutInfo, layoutsFor, paramsFor, switchLayout, validateConsistency, validateParamValue } from '../engineering/configuration.js';
 import { VIEW_LABELS, drawView } from '../visualisation/views2d.js';
 import { changeCategory } from './projects.js';
+import { flowBar } from '../ui/design-flow.js';
 
 let idCounter = 0;
 const nextId = (prefix) => `${prefix}-${(idCounter += 1)}`;
@@ -170,7 +171,7 @@ export async function mount(container, ctx) {
   const build = () => {
     const doc = store.doc;
     if (!doc) {
-      container.replaceChildren(header(), noProject(ctx));
+      container.replaceChildren(header(), flowBar(ctx, 'architecture'), noProject(ctx));
       renderedLayout = null;
       return;
     }
@@ -194,7 +195,7 @@ export async function mount(container, ctx) {
       review = reviewCard(prefs);
       blocks.push(form.element, views.element, review.element);
     }
-    container.replaceChildren(header(), h('div', { class: 'page-grid architecture-grid' }, blocks));
+    container.replaceChildren(header(), flowBar(ctx, 'architecture'), h('div', { class: 'page-grid architecture-grid' }, blocks));
     redraw();
   };
 

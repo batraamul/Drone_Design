@@ -4,6 +4,7 @@
 import { h } from '../../utils/dom.js';
 import { icon } from '../../ui/icons.js';
 import { badge, button, card, emptyState, pageHeader } from '../../ui/components.js';
+import { RESOURCE_GROUPS } from './resources.js';
 import { STORES } from '../../database.js';
 import { LESSONS, LEARNING_PATHS, getLesson } from './lessons.js';
 import { GLOSSARY } from './glossary.js';
@@ -51,13 +52,14 @@ async function renderIndex(container, ctx) {
       title: 'Learning Centre',
       icon: 'book',
       subtitle: 'Engineering theory behind each AEROLAB X model, with worked examples, calculators and knowledge checks. New lessons arrive with each build.',
-      badges: [badge('Partial', 'warning', { title: 'Build 1 includes the engineering-foundations lessons and the glossary.' })],
+      badges: [badge('Partial', 'warning', { title: 'Lessons are added with each build.' })],
+      actions: [button({ label: 'Courses, books & tools', icon: 'external', variant: 'primary', onClick: () => ctx.router.navigate('learning', ['resources']) })],
     }),
     h(
       'div',
       { class: 'page-grid' },
       card({
-        title: 'Engineering foundations',
+        title: 'Lessons',
         icon: 'layers',
         description: `${completed} of ${LESSONS.length} lessons completed`,
         class: 'span-2',
@@ -204,10 +206,35 @@ function renderGlossary(container, ctx, route) {
   if (query) input.focus();
 }
 
+function renderResources(container, ctx) {
+  const external = (url, text) => h('a', { href: url, target: '_blank', rel: 'noopener noreferrer', class: 'resource__link' }, text, ' ', icon('external', { size: 12 }));
+  container.replaceChildren(
+    pageHeader({ title: 'Courses, books & tools', icon: 'book', subtitle: 'Free courses (NPTEL, Coursera, MIT), reference books, measured data, open-source tools, and publication and patent services — each tied to the design step it helps with.', actions: [button({ label: 'All lessons', icon: 'chevronLeft', size: 'sm', onClick: () => ctx.router.navigate('learning') })] }),
+    h(
+      'div',
+      { class: 'page-grid' },
+      RESOURCE_GROUPS.map((group) =>
+        card({
+          title: group.title,
+          icon: group.id === 'tools' ? 'terminal' : group.id === 'defence' ? 'shield' : group.id === 'balloon' ? 'balloon' : group.id === 'data' ? 'database' : 'book',
+          class: 'span-2',
+          body: h(
+            'ul',
+            { class: 'resource-list', dataset: { group: group.id } },
+            group.items.map((item) => h('li', { class: 'resource' }, h('div', { class: 'resource__title' }, item.url ? external(item.url, item.title) : h('strong', null, item.title)), h('div', { class: 'resource__meta' }, h('span', { class: 'badge' }, item.step), h('span', { class: 'muted' }, item.note)))),
+          ),
+        }),
+      ),
+      h('p', { class: 'muted span-2' }, 'External sites are run by their owners; course availability and enrolment dates change. Links checked on 23 November 2026.'),
+    ),
+  );
+}
+
 export async function mount(container, ctx, route) {
   const [sub] = route.segments;
   if (!sub) return renderIndex(container, ctx);
   if (sub === 'glossary') return renderGlossary(container, ctx, route);
+  if (sub === 'resources') return renderResources(container, ctx);
   const lesson = getLesson(sub);
   if (!lesson) {
     container.replaceChildren(emptyState({ icon: 'book', title: 'Lesson not found', message: 'This lesson does not exist (yet).', actions: [button({ label: 'All lessons', onClick: () => ctx.router.navigate('learning') })] }));

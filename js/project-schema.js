@@ -13,9 +13,20 @@ import { APP_VERSION } from './version.js';
 import { REQUIREMENT_FIELDS, emptyRequirements, validateRequirementValue } from './engineering/requirements.js';
 import { defaultConfiguration, sanitizeConfiguration, validateConfiguration } from './engineering/configuration.js';
 import { emptyComponents, sanitizeComponents, validateComponents } from './engineering/components.js';
+import { DEFAULT_SETTINGS, sanitizePropulsion, validatePropulsion } from './engineering/propulsion.js';
+import { defaultPropulsion } from './engineering/catalogue.js';
+import { defaultSounding, sanitizeSounding, validateSounding } from './engineering/sounding.js';
 
-/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (adds modules.configuration); 3 = Build 3 (adds modules.components). */
-export const PROJECT_SCHEMA_VERSION = 3;
+/** Starting propulsion data for a configuration: closest illustrative motor/propeller, size-scaled structure estimate. */
+export function defaultPropulsionFor(configuration) {
+  const params = configuration?.params ?? {};
+  const D = params.liftPropDiameter ?? params.propDiameter ?? 0.254;
+  const structureMass = D < 0.08 ? 0.02 : D <= 0.27 ? 0.35 : D <= 0.34 ? 0.6 : 1.2;
+  return defaultPropulsion(configuration, { ...DEFAULT_SETTINGS, structureMass });
+}
+
+/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (modules.configuration); 3 = Build 3 (modules.components); 4 = Build 4 (modules.propulsion); 5 = balloon glide-sonde mission (modules.sounding). */
+export const PROJECT_SCHEMA_VERSION = 5;
 
 export const PROJECT_CATEGORIES = Object.freeze([
   {
@@ -60,8 +71,15 @@ export const CIVILIAN_APPLICATIONS = Object.freeze([
   { id: 'communication-relay', label: 'Communication relay' },
   { id: 'scientific', label: 'Scientific research platform' },
   { id: 'education', label: 'Education & training' },
-  { id: 'other', label: 'Other civilian application' },
+  { id: 'defence-logistics', label: 'Defence: logistics & resupply (non-weapon)' },
+  { id: 'defence-isr', label: 'Defence: surveillance & reconnaissance (non-weapon)' },
+  { id: 'defence-met', label: 'Defence: meteorological support & sounding' },
+  { id: 'defence-hah', label: 'Defence: high-altitude & cold-region operations' },
+  { id: 'disaster-relief', label: 'Disaster relief & humanitarian support' },
+  { id: 'other', label: 'Other application' },
 ]);
+/** Applications include non-weapon defence roles; the name is kept for compatibility. */
+export const APPLICATIONS = CIVILIAN_APPLICATIONS;
 
 /**
  * Design maturity, declared by the user. There is intentionally no "flight-ready"
@@ -149,7 +167,10 @@ export function createProject(init = {}, { now = new Date(), id } = {}) {
     tags: Array.isArray(init.tags) ? normaliseTags(init.tags) : [],
     requirements,
     notes: [],
-    modules: { configuration: defaultConfiguration(category), components: emptyComponents() },
+    modules: (() => {
+      const configuration = defaultConfiguration(category);
+      return { configuration, components: emptyComponents(), propulsion: defaultPropulsionFor(configuration), sounding: { ...defaultSounding(), enabled: false } };
+    })(),
     createdAt: iso,
     updatedAt: iso,
     deletedAt: null,
@@ -190,7 +211,7 @@ export function validateProject(doc) {
     error('description', 'Description must be text');
   }
   if (!CATEGORY_MAP.has(doc.category)) error('category', 'Unknown aircraft category');
-  if (!APPLICATION_MAP.has(doc.application)) error('application', 'Unknown civilian application');
+  if (!APPLICATION_MAP.has(doc.application)) error('application', 'Unknown application');
   if (!STAGE_MAP.has(doc.stage)) error('stage', 'Unknown design stage');
   if (!Array.isArray(doc.tags) || doc.tags.some((tag) => typeof tag !== 'string')) error('tags', 'Tags must be text');
 
@@ -228,6 +249,12 @@ export function validateProject(doc) {
     }
     for (const item of validateComponents(doc.modules.components)) {
       error(item.path ? `modules.components.${item.path}` : 'modules.components', item.message);
+    }
+    for (const item of validatePropulsion(doc.modules.propulsion)) {
+      error(item.path ? `modules.propulsion.${item.path}` : 'modules.propulsion', item.message);
+    }
+    for (const item of validateSounding(doc.modules.sounding)) {
+      error(item.path ? `modules.sounding.${item.path}` : 'modules.sounding', item.message);
     }
   }
   if (!isIsoDate(doc.createdAt)) error('createdAt', 'Invalid creation date');
@@ -301,6 +328,12 @@ export function sanitizeProject(input, { now = new Date() } = {}) {
   const components = sanitizeComponents(base.modules.components);
   base.modules.components = components.components;
   warnings.push(...components.warnings);
+  const propulsion = sanitizePropulsion(base.modules.propulsion, defaultPropulsionFor(base.modules.configuration));
+  base.modules.propulsion = propulsion.propulsion;
+  warnings.push(...propulsion.warnings);
+  const sounding = sanitizeSounding(base.modules.sounding);
+  base.modules.sounding = { ...sounding.sounding, enabled: base.modules.sounding?.enabled === true };
+  warnings.push(...sounding.warnings);
   if (isIsoDate(source.createdAt)) base.createdAt = source.createdAt;
   if (isIsoDate(source.updatedAt)) base.updatedAt = source.updatedAt;
   base.deletedAt = null;
@@ -325,6 +358,18 @@ export const MIGRATIONS = Object.freeze({
     const modules = isPlainObject(doc.modules) ? doc.modules : {};
     const { components } = sanitizeComponents(modules.components);
     return { ...doc, modules: { ...modules, components } };
+  },
+  /** 3 → 4: add propulsion (illustrative motor/propeller matched to the configured propeller size). */
+  3: (doc) => {
+    const modules = isPlainObject(doc.modules) ? doc.modules : {};
+    const { propulsion } = sanitizePropulsion(modules.propulsion, defaultPropulsionFor(modules.configuration));
+    return { ...doc, modules: { ...modules, propulsion } };
+  },
+  /** 4 → 5: add the (disabled) balloon glide-sonde mission. */
+  4: (doc) => {
+    const modules = isPlainObject(doc.modules) ? doc.modules : {};
+    const { sounding } = sanitizeSounding(modules.sounding);
+    return { ...doc, modules: { ...modules, sounding: { ...sounding, enabled: modules.sounding?.enabled === true } } };
   },
 });
 
