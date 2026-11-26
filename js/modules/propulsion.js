@@ -78,7 +78,8 @@ function settingsEditor(ctx, winged, hovering) {
   const batSelect = batteries.length
     ? selectControl({ id: batId, options: batteries.map((b) => ({ value: b.id, label: b.name })), value: store.doc.modules.propulsion.batteryId ?? batteries[0].id, onChange: (v) => store.set(['modules', 'propulsion', 'batteryId'], v, { label: 'Choose battery' }) })
     : null;
-  const keys = ['structureMass', 'usableFraction', 'escEfficiency', 'isaDeltaT', ...(winged ? ['cruiseLD', 'cruisePropEfficiency', 'cruiseMotorEfficiency'] : [])];
+  const aeroLD = winged && Boolean(ctx.engineering.aeroModel?.());
+  const keys = ['structureMass', 'usableFraction', 'escEfficiency', 'isaDeltaT', ...(winged ? [...(aeroLD ? [] : ['cruiseLD']), 'cruisePropEfficiency', 'cruiseMotorEfficiency'] : [])];
   const controls = [];
   const rows = keys.map((key) => {
     const f = SETTING_FIELDS[key];
@@ -107,6 +108,8 @@ function settingsEditor(ctx, winged, hovering) {
         { class: 'stack' },
         batSelect ? field({ id: batId, label: 'Battery', control: batSelect, hint: 'Edit its cells, capacity and internal resistance in the Avionics Laboratory.' }) : h('div', { class: 'notice notice--warning', role: 'status' }, icon('warning', { size: 18 }), h('p', null, 'No battery yet. ', button({ label: 'Add one in the Avionics Laboratory', size: 'sm', onClick: () => ctx.router.navigate('avionics') }))),
         h('div', { class: 'requirement-list' }, rows),
+        aeroLD ? h('p', { class: 'muted' }, icon('airfoil', { size: 14 }), ' Cruise lift-to-drag comes from the drag polar on the ', h('a', { href: '#/aerodynamics' }, 'Aerodynamics'), ' page.') : null,
+        h('p', { class: 'muted' }, icon('truss', { size: 14 }), ' Check the structure-mass estimate against the spar and arm tubes on the ', h('a', { href: '#/structures' }, 'Structures'), ' page.'),
       ),
     }),
     sync: (force) => {
@@ -149,7 +152,7 @@ function resultsView(ctx, r) {
       bigNumber('Rotor speed', r.hover.op.n * 2 * Math.PI, 'rad/s', 'rpm'),
     );
   }
-  if (r.cruise) stats.push(bigNumber('Cruise power', r.cruise.totalPower, 'W', 'W'), bigNumber('Cruise speed', r.cruise.speed, 'm/s', 'km/h'));
+  if (r.cruise) stats.push(bigNumber('Cruise power', r.cruise.totalPower, 'W', 'W'), bigNumber('Cruise speed', r.cruise.speed, 'm/s', 'km/h'), bigNumber(r.cruise.ldFromAero ? 'Cruise L/D (aerodynamics)' : 'Cruise L/D (estimate)', r.cruise.liftToDrag, '1', '1'));
   if (r.endurance) stats.push(bigNumber(r.endurance.mode === 'cruise' ? 'Cruise endurance' : 'Hover endurance', r.endurance.time, 's', 'min', 'accent'));
   if (r.endurance && r.cruise) stats.push(bigNumber('Range (still air)', r.endurance.time * r.cruise.speed, 'm', 'km'));
   const charts = [];

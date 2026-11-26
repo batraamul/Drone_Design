@@ -7,7 +7,7 @@ import { icon } from '../ui/icons.js';
 import { badge, button, card, emptyState, formatQuantity, keyValueList, pageHeader, progressBar, severityIcon } from '../ui/components.js';
 import { categoryInfo, applicationInfo, stageInfo } from '../project-schema.js';
 import { REQUIREMENT_FIELDS, reviewSummary } from '../engineering/requirements.js';
-import { flowOverview } from '../ui/design-flow.js';
+import { FLOW_STEPS, flowOverview, stepStatus } from '../ui/design-flow.js';
 import { installCard, isInstalled } from '../ui/install.js';
 import { BUILDS, MODULES, buildStatus } from './module-registry.js';
 import { storageStatus } from '../database.js';
@@ -15,10 +15,60 @@ import { formatBytes, formatRelative } from '../utils/format.js';
 import { BUILD_NUMBER, TOTAL_BUILDS, APP_TAGLINE } from '../version.js';
 import { FIDELITY_DISCLAIMER } from '../engineering/provenance.js';
 
+/** Welcome hero shown when no project is open. */
+function welcomeHero(ctx) {
+  const { projects, actions, router } = ctx;
+  const step = (n, title, text, ic) => h('li', { class: 'welcome__step' }, h('span', { class: 'welcome__stepicon' }, icon(ic, { size: 20 })), h('span', { class: 'welcome__stepnum' }, n), h('strong', null, title), h('span', { class: 'muted' }, text));
+  return h(
+    'section',
+    { class: 'welcome span-2', 'aria-labelledby': 'welcome-title' },
+    h('div', { class: 'welcome__text' }, h('p', { class: 'welcome__kicker' }, 'Drone design, analysis and learning'), h('h2', { id: 'welcome-title', class: 'welcome__title' }, 'Design a drone step by step — and see why every number is what it is.'), h('p', { class: 'welcome__lead' }, `${APP_TAGLINE}. Start from a working example or a blank project; the design flow walks you from mission targets to a printable build sheet.`)),
+    projects
+      ? h('div', { class: 'welcome__actions' }, button({ label: 'Start from an example', icon: 'copy', variant: 'primary', onClick: () => actions.newFromExample() }), button({ label: 'New project', icon: 'plus', onClick: () => actions.newProject() }), button({ label: 'Learn the basics', icon: 'book', onClick: () => router.navigate('learning') }), button({ label: 'Formula Library', icon: 'book', onClick: () => router.navigate('formulas') }))
+      : h('p', { class: 'notice notice--warning' }, 'Local storage is unavailable, so projects cannot be created in this browser context.'),
+    h('ol', { class: 'welcome__steps' }, step(1, 'Define', 'Mission targets: mass, payload, endurance, speed.', 'tag'), step(2, 'Design', 'Layout, avionics, propulsion, wing and structure.', 'cube'), step(3, 'Check', 'Every result shows its equation, inputs and a fix.', 'checkCircle'), step(4, 'Share', 'Build sheet, parts list, 3D export, paper notes.', 'report')),
+  );
+}
+
+/** Design health: flow progress, open problems and headline numbers. */
+function healthCard(ctx) {
+  const doc = ctx.store.doc;
+  if (!doc) return null;
+  const review = ctx.engineering.evaluate();
+  const statuses = FLOW_STEPS.map((s) => stepStatus(ctx, s));
+  const counted = statuses.filter((s) => s !== 'na' && s !== 'skipped');
+  const done = counted.filter((s) => s === 'done' || s === 'ready').length;
+  const pct = counted.length ? Math.round((done / counted.length) * 100) : 0;
+  const errors = review.checks.filter((c) => c.severity === 'error').length;
+  const warnings = review.checks.filter((c) => c.severity === 'warning').length;
+  const ring = h('div', { class: 'ring', role: 'img', 'aria-label': `Design flow ${pct} % complete` }, h('span', { class: 'ring__value' }, `${pct}%`), h('span', { class: 'ring__label' }, 'of the flow'));
+  ring.style.setProperty('--pct', String(pct));
+  const p = ctx.engineering.propulsion();
+  const a = ctx.engineering.aerodynamics();
+  const tile = (label, value, tone) => h('div', { class: ['health__tile', tone ? `health__tile--${tone}` : null] }, h('span', { class: 'health__label' }, label), h('span', { class: 'health__value mono' }, value));
+  const tiles = [
+    tile('Problems', String(errors), errors ? 'danger' : 'ok'),
+    tile('Warnings', String(warnings), warnings ? 'warn' : 'ok'),
+    p?.mass ? tile('Take-off mass', formatQuantity(p.mass.total, 'kg', p.mass.total < 1 ? 'g' : 'kg', { digits: 3 })) : null,
+    p?.endurance ? tile(p.endurance.mode === 'cruise' ? 'Cruise endurance' : 'Hover endurance', formatQuantity(p.endurance.time, 's', 'min', { digits: 3 })) : null,
+    p?.hover ? tile('Thrust / weight', p.hover.thrustToWeight.toFixed(2), p.hover.thrustToWeight < 1.5 ? 'warn' : null) : null,
+    a?.performance ? tile('Cruise L/D', a.performance.cruise.ld.toFixed(1)) : null,
+  ];
+  return card({
+    title: 'Design health',
+    icon: 'checkCircle',
+    class: 'span-2 health',
+    description: errors ? 'Fix the problems first: open the review to see each calculation and how to resolve it.' : warnings ? 'No blocking problems. Review the warnings before you build.' : 'No problems or warnings in the current models.',
+    actions: [button({ label: 'Open the review', size: 'sm', onClick: () => ctx.shell.revealInspector() }), button({ label: 'Summary', size: 'sm', variant: 'primary', onClick: () => ctx.router.navigate('summary') })],
+    body: h('div', { class: 'health__body' }, ring, h('div', { class: 'health__tiles' }, tiles)),
+  });
+}
+
 function currentProjectCard(ctx, versionCount) {
   const { store, projects, actions, router } = ctx;
   const doc = store.doc;
   if (!doc) {
+    if (projects) return null;
     return card({
       title: 'Start a design',
       icon: 'folder',
@@ -206,7 +256,7 @@ function gettingStartedCard(ctx, list) {
   const { store, drive, router, actions } = ctx;
   const evaluation = ctx.engineering.evaluate();
   const steps = [
-    { done: list.length > 0, title: 'Create a project', text: 'A project holds one aircraft design: its targets, notes and saved versions.', action: () => actions.newProject(), label: 'New project' },
+    { done: list.length > 0, title: 'Create a project', text: 'A project holds one aircraft design: its targets, notes and saved versions. The quickest start is a ready-made example.', action: () => actions.newFromExample(), label: 'Start from an example' },
     { done: Boolean(store.doc) && evaluation.completeness.set >= 3, title: 'Enter the design targets', text: 'Mass, payload, endurance, range, speed, altitude and wind. Use any units; they are converted for you.', action: () => (store.doc ? router.navigate('projects', [store.doc.id], { tab: 'requirements' }) : router.navigate('projects')), label: 'Open targets' },
     { done: Boolean(store.doc) && evaluation.completeness.set >= 3, title: 'Read the design review', text: 'Green means the targets fit together; amber or red items explain the calculation and how to fix it.', action: () => ctx.shell.revealInspector(), label: 'Show review' },
     { done: drive.enabled && drive.state === 'ok', title: 'Turn on Google Drive sync', text: 'Keeps your projects as a JSON file in your Drive and merges changes from every computer you use.', action: () => router.navigate('settings'), label: 'Set up sync' },
@@ -249,6 +299,8 @@ export async function mount(container, ctx) {
       h(
         'div',
         { class: 'page-grid dashboard-grid' },
+        store.doc ? null : welcomeHero(ctx),
+        healthCard(ctx),
         store.doc ? card({ title: 'Design flow', icon: 'roadmap', class: 'span-2', description: 'Follow the steps in order; each page links to the next. Status updates as you work.', body: flowOverview(ctx) }) : null,
         gettingStartedCard(ctx, list),
         currentProjectCard(ctx, versions.length),

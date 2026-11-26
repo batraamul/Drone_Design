@@ -12,7 +12,7 @@
  *  - The worker never touches IndexedDB: user projects survive every update.
  */
 const APP_PREFIX = 'aerolab-x';
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 const BUILD_ID = 'dev';
 const CACHE_NAME = `${APP_PREFIX}-v${VERSION}-${BUILD_ID}`;
 
@@ -48,6 +48,12 @@ const PRECACHE_URLS = [
   './js/engineering/geometry.js',
   './js/engineering/propulsion.js',
   './js/engineering/sounding.js',
+  './js/engineering/aerodynamics.js',
+  './js/engineering/structures.js',
+  './js/engineering/expression.js',
+  './js/engineering/formulas.js',
+  './js/engineering/custom-formulas.js',
+  './js/engineering/templates.js',
   './js/engineering/provenance.js',
   './js/engineering/requirements.js',
   './js/engineering/units.js',
@@ -55,6 +61,9 @@ const PRECACHE_URLS = [
   './js/modules/avionics.js',
   './js/modules/propulsion.js',
   './js/modules/sounding.js',
+  './js/modules/aerodynamics.js',
+  './js/modules/structures.js',
+  './js/modules/formulas.js',
   './js/modules/summary.js',
   './js/modules/component-library.js',
   './js/modules/dashboard.js',

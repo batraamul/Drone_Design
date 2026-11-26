@@ -12,6 +12,8 @@ import { formatNumber } from '../../utils/format.js';
 import { wingPlanform } from '../../engineering/geometry.js';
 import { rotorOperatingPoint } from '../../engineering/propulsion.js';
 import { balloonAscent, defaultSounding } from '../../engineering/sounding.js';
+import { liftingLine } from '../../engineering/aerodynamics.js';
+import { armCheck, MATERIALS } from '../../engineering/structures.js';
 
 const n = (value, digits = 4) => formatNumber(value, { digits });
 
@@ -696,6 +698,185 @@ export const LESSONS = Object.freeze([
       'M. S. Selig et al., Summary of Low-Speed Airfoil Data (UIUC) — low-Reynolds-number aerofoil behaviour.',
     ],
   },
+  {
+    id: 'aerodynamics-stability',
+    title: 'Wing aerodynamics, drag and balance',
+    icon: 'airfoil',
+    level: 'Aerodynamics',
+    minutes: 25,
+    summary: 'How a finite wing makes lift, where drag comes from, how fast the aircraft stalls, which speeds give best range and endurance, and where the centre of gravity must be.',
+    beginner: [
+      'A wing makes lift by turning the air downwards. A finite wing leaks air round its tips, which tilts the lift backwards: that tilt is induced drag, and it is smaller for long, slender (high aspect-ratio) wings.',
+      'The rest of the drag is mostly skin friction on every surface the air touches, increased by the shape (thickness) of each part. Adding up each part gives the zero-lift drag C_D0.',
+      'The stall speed is the slowest speed at which the wing can carry the weight. Best range comes at the speed of best lift-to-drag ratio; best endurance a little slower, at minimum power.',
+      'For stability in pitch the centre of gravity must be ahead of the neutral point (the aircraft’s overall aerodynamic centre). The gap, as a fraction of the mean chord, is the static margin: 5–15 % is typical.',
+    ],
+    theory: [
+      'Prandtl’s lifting-line theory represents the wing by a bound vortex whose strength varies along the span. Glauert wrote the circulation as a Fourier sine series Γ = 2bV Σ A_n sin nθ; requiring every section to satisfy its own lift curve gives linear equations for the A_n. Then C_L = π AR A₁ and the span efficiency is e = 1/(1 + δ) with δ = Σ n (A_n/A₁)². An elliptical planform gives e = 1; a taper ratio near 0.4 comes close.',
+      'Sweep reduces the lift-curve slope; the DATCOM/Helmbold expression C_Lα = 2π AR / (2 + √(AR²(1 + tan²Λ_c/2)/κ² + 4)) captures it, κ = a₀/2π.',
+      'Zero-lift drag by component build-up (Raymer): C_D0 = Σ C_f FF Q S_wet / S. Skin friction is laminar (1.328/√Re) or turbulent (0.455/(log₁₀ Re)^2.58); the form factor FF grows with thickness for surfaces and with bluntness for bodies; Q accounts for interference.',
+      'Parabolic polar: C_D = C_D0 + k C_L², k = 1/(π AR e) with a viscous Oswald factor (Kroo: 1/e = 1/e_inv + 0.38 C_D0 π AR). Then (L/D)max = ½√(π AR e / C_D0) at C_L* = √(C_D0/k).',
+      'Neutral point: h_n = h_ac + η V_H (a_t/a_w)(1 − dε/dα) − (fuselage term). Static margin SM = h_n − h_cg. A tailless wing has V_H = 0 and must use a reflexed aerofoil (c_m0 ≥ 0) or sweep with washout to trim.',
+    ],
+    equations: [
+      { expression: 'C_L = π AR A₁,   e = 1/(1 + Σ n (A_n/A₁)²)', note: 'Lifting line (Glauert).' },
+      { expression: 'C_D0 = Σ C_f FF Q S_wet / S', note: 'Component drag build-up.' },
+      { expression: 'C_D = C_D0 + C_L²/(π AR e)', note: 'Parabolic drag polar.' },
+      { expression: 'V_s = √(2W/(ρ S C_Lmax))', note: 'Stall speed.' },
+      { expression: 'SM = (x_np − x_cg)/c̄', note: 'Static margin.' },
+    ],
+    variables: [
+      { symbol: 'AR', meaning: 'Aspect ratio b²/S', unit: '—' },
+      { symbol: 'e', meaning: 'Oswald (span) efficiency', unit: '—' },
+      { symbol: 'C_f, FF, Q', meaning: 'Skin friction, form factor, interference', unit: '—' },
+      { symbol: 'S_wet', meaning: 'Wetted area', unit: 'm²' },
+      { symbol: 'V_H', meaning: 'Horizontal tail volume coefficient', unit: '—' },
+      { symbol: 'x_np, x_cg', meaning: 'Neutral point and CG behind the nose', unit: 'm' },
+    ],
+    example: () => {
+      const ll = liftingLine({ span: 2, rootChord: 0.3, taperRatio: 0.6, a0: 6 });
+      const S = (2 * 0.3 * 1.6) / 2;
+      const AR = 4 / S;
+      const e = 1 / (1 / ll.e + 0.38 * 0.025 * Math.PI * AR);
+      const k = 1 / (Math.PI * AR * e);
+      const W = 3 * 9.80665;
+      const vs = Math.sqrt((2 * W) / (1.19 * S * 1.2));
+      return {
+        title: 'A 3 kg survey aircraft with a 2 m tapered wing',
+        steps: [
+          `S = b c_r (1 + λ)/2 = 2 × 0.3 × 1.6 / 2 = ${n(S, 3)} m², AR = b²/S = ${n(AR, 3)}.`,
+          `Lifting line (taper 0.6, a₀ = 6/rad): span efficiency e_LL = ${n(ll.e, 4)}, lift slope C_Lα = ${n(ll.cla, 3)} per rad.`,
+          `With C_D0 = 0.025, the Oswald factor is e = 1/(1/${n(ll.e, 3)} + 0.38 × 0.025 × π × ${n(AR, 3)}) = ${n(e, 3)}, so k = ${n(k, 3)}.`,
+          `(L/D)max = ½ √(1/(C_D0 k)) = ${n(0.5 * Math.sqrt(1 / (0.025 * k)), 3)} at C_L* = ${n(Math.sqrt(0.025 / k), 3)}.`,
+          `At 300 m (ρ ≈ 1.19 kg/m³) with C_Lmax = 1.2: V_s = √(2W/(ρ S C_Lmax)) = ${n(vs, 3)} m/s; cruise at 1.3 V_s or more, i.e. above ${n(1.3 * vs, 3)} m/s.`,
+        ],
+      };
+    },
+    calculator: 'polar',
+    practical: [
+      'Run the actual aerofoil in XFLR5 at your cruise Reynolds number and enter its c_l,max, α₀ and c_m0.',
+      'Measure the CG on the assembled aircraft (balance it on two fingers or with two scales) and enter it.',
+      'Expect 20–50 % more drag than a clean build-up on a hand-built airframe: antennas, gaps and rough skins add up.',
+      'Low Reynolds number (below 100 000) brings laminar bubbles: c_l,max falls and drag rises.',
+    ],
+    mistakes: [
+      'Putting the CG behind the neutral point: the aircraft diverges in pitch.',
+      'Using a cambered (nose-down c_m0) aerofoil on a tailless wing.',
+      'Cruising close to stall to save power, leaving no margin for gusts and turns.',
+      'Taking sea-level aerofoil data for a high-altitude or very small aircraft.',
+    ],
+    quiz: [
+      {
+        question: 'Doubling the aspect ratio at the same C_L and e roughly:',
+        options: ['Doubles induced drag', 'Halves induced drag', 'Leaves induced drag unchanged', 'Removes skin friction'],
+        answer: 1,
+        explanation: 'C_Di = C_L²/(π AR e): induced drag is inversely proportional to AR.',
+      },
+      {
+        question: 'The CG is moved backwards towards the neutral point. The static margin:',
+        options: ['Increases', 'Decreases', 'Does not change', 'Becomes the stall speed'],
+        answer: 1,
+        explanation: 'SM = (x_np − x_cg)/c̄ falls as x_cg approaches x_np; at zero the aircraft is neutrally stable.',
+      },
+      {
+        question: 'Best endurance for a propeller aircraft is flown at:',
+        options: ['The stall speed', 'Minimum power speed V_mp, slower than best L/D', 'Top speed', 'Twice V_md'],
+        answer: 1,
+        explanation: 'Endurance is maximised by minimum power D·V, at V_md/3^¼ in a parabolic polar.',
+      },
+    ],
+    references: [
+      'J. D. Anderson, Fundamentals of Aerodynamics — lifting-line theory (Glauert’s method).',
+      'D. P. Raymer, Aircraft Design: A Conceptual Approach — ch. 12 drag build-up, ch. 16 stability.',
+      'R. C. Nelson, Flight Stability and Automatic Control — static longitudinal stability.',
+      'I. Kroo, Aircraft Design: Synthesis and Analysis (Stanford) — Oswald efficiency estimate.',
+    ],
+  },
+  {
+    id: 'structures-sizing',
+    title: 'Sizing spars and arms',
+    icon: 'truss',
+    level: 'Structures',
+    minutes: 20,
+    summary: 'The loads that bend a wing spar and a multirotor arm, how stress, deflection and vibration follow from the tube size and material, and how safety factors are applied.',
+    beginner: [
+      'A wing in a pull-up carries several times the aircraft weight. That load bends the wing; the biggest bending moment is at the root, where the spar must be strongest.',
+      'A multirotor arm is a cantilever with the motor thrust at its tip. It must be strong enough at full throttle and stiff enough that it does not wobble.',
+      'Every arm has a natural frequency. If the propeller’s rotation (or its blades passing) shakes it at that frequency, it resonates and the flight controller sees noise. Stiff, short arms with light motors keep the frequency high.',
+      'Designs use limit loads (the most expected in service) multiplied by a safety factor, 1.5 for aircraft, to get the ultimate loads the structure must survive.',
+    ],
+    theory: [
+      'Elliptical lift on each half wing has its centroid at 4(b/2)/(3π) from the root, so the root bending moment is M = n W b/(3π).',
+      'Bending stress in a round tube: σ = M c / I with c = D/2 and I = π (D⁴ − d⁴)/64. Thin-walled tubes put material far from the centre, where it works hardest.',
+      'Cantilever deflection: tip load F gives δ = F L³/(3EI); a uniform load w gives δ = w L⁴/(8EI). Stiffness scales with E·I, strength with σ_allow·I/c.',
+      'First bending frequency with a tip mass (Rayleigh): f₁ = (1/2π)√(3EI/(L³(m_tip + 0.24 m_arm))). Compare it with the rotor frequency 1P = rpm/60 and blade passing 2P for a two-blade propeller; stay at least 15 % away, ideally above 2P.',
+      'The margin of safety MS = σ_allow/σ_ultimate − 1 must be zero or positive. Composite allowables depend on lay-up, temperature and damage; use tested values.',
+    ],
+    equations: [
+      { expression: 'M_root = n W b / (3π)', note: 'Elliptical lift.' },
+      { expression: 'σ = M (D/2) / I,   I = π (D⁴ − d⁴)/64', note: 'Bending of a tube.' },
+      { expression: 'δ = F L³/(3EI)', note: 'Tip-loaded cantilever.' },
+      { expression: 'f₁ = (1/2π) √(3EI / (L³ (m_tip + 0.24 m_arm)))', note: 'Arm with a motor at the tip.' },
+    ],
+    variables: [
+      { symbol: 'n', meaning: 'Load factor', unit: '—' },
+      { symbol: 'E', meaning: 'Young’s modulus', unit: 'Pa' },
+      { symbol: 'I', meaning: 'Second moment of area', unit: 'm⁴' },
+      { symbol: 'σ_allow', meaning: 'Allowable stress', unit: 'Pa' },
+      { symbol: 'f₁', meaning: 'First bending frequency', unit: 'Hz' },
+    ],
+    example: () => {
+      const cf = MATERIALS[0];
+      const c = armCheck({ thrust: 15, length: 0.2, tipMass: 0.08, safetyFactor: 1.5, material: cf, outer: 0.012, wall: 0.001, rotorHz: 100 });
+      return {
+        title: 'A 200 mm carbon arm, 12 × 1 mm tube, 15 N full thrust',
+        steps: [
+          `I = π (12⁴ − 10⁴)/64 mm⁴ = ${n(c.section.I * 1e12, 4)} mm⁴.`,
+          `Ultimate moment 1.5 × 15 N × 0.2 m = 4.5 N·m gives σ = ${n(c.stress / 1e6, 3)} MPa against ${n(cf.strength / 1e6, 3)} MPa allowable: margin ${n(c.margin * 100, 3)} %.`,
+          `Tip deflection at full thrust δ = F L³/(3EI) = ${n(c.deflection * 1000, 3)} mm.`,
+          `With an 80 g motor and propeller, f₁ = ${n(c.frequency, 3)} Hz${c.resonance ? `, within 15 % of ${c.resonance}: stiffen it` : ''}. At 6 000 rpm hover, 1P = 100 Hz and 2P = 200 Hz.`,
+        ],
+      };
+    },
+    calculator: 'beam',
+    practical: [
+      'Check joints and clamps, not only tubes: most failures start at holes, bonds and clamps.',
+      'Use tested allowables at the coldest and hottest operating temperatures (the stratosphere is near −55 °C).',
+      'Load-test the wing to the limit load (sandbag test) before flight.',
+      'Add soft mounts for the flight controller if the arm frequency is close to the rotor frequencies.',
+    ],
+    mistakes: [
+      'Sizing for hover thrust instead of full-throttle thrust.',
+      'Forgetting the balloon-release pull-out load on a glide-sonde.',
+      'Counting the whole tube wall in a split or drilled section.',
+      'Treating the safety factor as an excuse for unknown material data.',
+    ],
+    quiz: [
+      {
+        question: 'Doubling the arm length with the same tube and tip load makes the tip deflection:',
+        options: ['Twice as large', 'Four times as large', 'Eight times as large', 'Unchanged'],
+        answer: 2,
+        explanation: 'δ = F L³/(3EI): deflection scales with L³.',
+      },
+      {
+        question: 'Ultimate load is:',
+        options: ['The weight', 'Limit load × safety factor', 'Half the limit load', 'The yield stress'],
+        answer: 1,
+        explanation: 'The structure must survive the limit load multiplied by the safety factor (1.5) without failure.',
+      },
+      {
+        question: 'An arm’s first frequency is 98 Hz and the rotor runs at 100 Hz in hover. You should:',
+        options: ['Fly as is', 'Stiffen or shorten the arm, or lighten the motor', 'Use a heavier motor', 'Lower the safety factor'],
+        answer: 1,
+        explanation: 'It is within 15 % of 1P and will resonate; raise f₁ by more stiffness or less tip mass.',
+      },
+    ],
+    references: [
+      'T. H. G. Megson, Aircraft Structures for Engineering Students — wing bending.',
+      'W. C. Young, R. G. Budynas, Roark’s Formulas for Stress and Strain — beams and sections.',
+      'R. D. Blevins, Formulas for Natural Frequency and Mode Shape — cantilever with tip mass.',
+    ],
+  },
 ]);
 
 export const LEARNING_PATHS = Object.freeze([
@@ -705,7 +886,7 @@ export const LEARNING_PATHS = Object.freeze([
   { title: 'Propulsion, motors and batteries', lessons: ['propulsion-energy'], status: 'available' },
   { title: 'Stratospheric sounding and glide-sondes', lessons: ['balloon-glidesonde'], status: 'available' },
   { title: 'RF links and software-defined radio', build: 7 },
-  { title: 'Aerodynamics and structures', build: 5 },
+  { title: 'Aerodynamics and structures', lessons: ['aerodynamics-stability', 'structures-sizing'], status: 'available' },
   { title: 'Flight dynamics and control', build: 6 },
   { title: 'Computer vision and sensor fusion', build: 8 },
   { title: 'Navigation, autonomy and edge AI', build: 9 },

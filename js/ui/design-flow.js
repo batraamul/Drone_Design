@@ -2,7 +2,8 @@
  * The design flow: one ordered path through AEROLAB X so each page leads to the next.
  *
  *   1 Mission & targets → 2 Layout & geometry → 3 Avionics → 4 Propulsion & energy
- *   → 5 3D review → 6 Balloon mission (optional) → 7 Summary & build sheet
+ *   → 5 Aerodynamics (winged aircraft) → 6 Structures → 7 3D review
+ *   → 8 Balloon mission (optional) → 9 Summary & build sheet
  *
  * Each step has a plain-language goal, a "done when" rule evaluated from the project,
  * and the lesson that explains it. flowBar() is placed at the top of every design page.
@@ -60,6 +61,32 @@ export const FLOW_STEPS = Object.freeze([
     lesson: 'propulsion-energy',
   },
   {
+    id: 'aerodynamics',
+    title: 'Aerodynamics',
+    goal: 'Winged aircraft: choose the aerofoil, check drag, stall speed and L/D, and place the centre of gravity.',
+    route: () => ['aerodynamics'],
+    status: (ctx) => {
+      if (!ctx.engineering.geometry()?.wing) return 'na';
+      const a = ctx.engineering.aerodynamics();
+      if (!a) return 'todo';
+      if (errorsFrom(a)) return 'problem';
+      return a.model?.stability?.cgSet ? 'done' : 'started';
+    },
+    lesson: 'aerodynamics-stability',
+  },
+  {
+    id: 'structures',
+    title: 'Structures',
+    goal: 'Size the wing spar and the arms or booms: strong enough, stiff enough, clear of rotor vibration.',
+    route: () => ['structures'],
+    status: (ctx) => {
+      const r = ctx.engineering.structures();
+      if (!r || r.status !== 'ok') return 'todo';
+      return errorsFrom(r) ? 'problem' : 'done';
+    },
+    lesson: 'structures-sizing',
+  },
+  {
     id: 'design-studio',
     title: '3D review',
     goal: 'Look at the aircraft in 3D; export it to FreeCAD, Blender or a 3D printer.',
@@ -95,6 +122,7 @@ const STATUS = {
   problem: { label: 'Needs attention', icon: 'warning', tone: 'danger' },
   todo: { label: 'To do', icon: 'info', tone: 'neutral' },
   skipped: { label: 'Optional', icon: 'info', tone: 'neutral' },
+  na: { label: 'Not needed for this layout', icon: 'info', tone: 'neutral' },
 };
 
 export function stepStatus(ctx, step) {

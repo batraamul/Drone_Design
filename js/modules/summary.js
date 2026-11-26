@@ -67,6 +67,9 @@ export async function mount(container, ctx) {
     const pushDerived = (list, ids) => list?.derived?.filter((d) => ids.includes(d.id)).forEach((d) => keyResults.push(d));
     pushDerived(prop, ['pr-mass', 'pr-h-power', 'pr-h-throttle', 'pr-h-tw', 'pr-c-power', 'pr-endurance', 'pr-range']);
     pushDerived(geo, ['geo-mr-wheelbase', 'geo-mr-loading', 'geo-fw-area', 'geo-fw-ar', 'geo-tail-vh']);
+    pushDerived(ctx.engineering.aerodynamics(), ['ae-cd0', 'ae-ldmax', 'ae-ld-cruise', 'ae-vs', 'ae-sm']);
+    pushDerived(ctx.engineering.structures(), ['st-spar-tube', 'st-spar-ms', 'st-spar-defl', 'st-arm-tube', 'st-arm-ms', 'st-arm-freq']);
+    const own = (review.formulas?.derived ?? []);
     pushDerived(sounding, ['sd-burst', 'sd-ascenttime', 'sd-stall-loss', 'sd-maxmach', 'sd-re', 'sd-glide-range', 'sd-pow-range']);
 
     container.replaceChildren(
@@ -106,6 +109,9 @@ export async function mount(container, ctx) {
             ? table(['Quantity', 'Value', 'Model', 'Trust'], keyResults.map((d) => h('tr', null, h('td', null, d.label), h('td', { class: 'mono num' }, fmt(d.value, d.unit, d.displayUnit ?? d.unit)), h('td', null, h('code', null, d.equation)), h('td', null, provenanceBadge(d.provenance)))))
             : h('p', { class: 'muted' }, 'Results appear as you complete the design steps.'),
         }),
+        own.length
+          ? card({ title: `Your formulas (${own.length})`, icon: 'book', class: 'span-2', description: 'Results of the formulas you added in the Formula Library.', body: table(['Formula', 'Value', 'Expression'], own.map((d) => h('tr', null, h('td', null, d.label), h('td', { class: 'mono num' }, fmt(d.value, d.unit, d.unit)), h('td', null, h('code', null, d.equation))))) })
+          : null,
         sounding
           ? card({ title: 'Balloon glide-sonde mission', icon: 'balloon', class: 'span-2', body: table(['Stage', 'Duration', 'Distance'], sounding.stages.map((st) => h('tr', null, h('td', null, st.name), h('td', { class: 'mono' }, fmt(st.duration, 's', st.duration > 3600 ? 'h' : 'min', 3)), h('td', { class: 'mono' }, fmt(st.range, 'm', 'km', 3))))) })
           : null,

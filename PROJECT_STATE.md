@@ -4,13 +4,13 @@ Single source of truth for where development stands. Read this at the start of e
 
 | Item | State |
 |---|---|
-| Current build | **Build 4 — Propulsion and energy: complete**, plus design flow, summary and early Build 13 (Builds 1–3 complete) |
-| Application version | 0.5.0 (Build 4) |
+| Current build | **Build 5 — Aerodynamics, structures and Formula Library: complete** (Builds 1–4 complete; Build 13 started early) |
+| Application version | 0.6.0 (Build 5) |
 | Licence | Apache-2.0 (LICENSE, NOTICE, CITATION.cff) since v0.4.0 |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
-| Last successful test run | 2026-11-23 — `npm test`: structural 12/12 groups; Node tests 110/110; Playwright 36/36 (desktop + mobile Chromium, software WebGL) |
+| Last successful test run | 2026-11-26 — `npm test`: structural 12/12 groups; Node tests 144/144; Playwright 40/40 (desktop + mobile Chromium, software WebGL) |
 
 ## Completed (Build 1)
 
@@ -58,6 +58,38 @@ Single source of truth for where development stands. Read this at the start of e
 - Lesson "Avionics power budgets, regulators and logic levels" with a regulator and battery-life calculator; 7 new glossary terms.
 - Licence: Apache-2.0 with NOTICE and CITATION.cff. Roadmap extended with Builds 13 (stratospheric sounding), 14 (defence-style assurance, civilian scope) and 15 (open publication). The Stratospheric Sounding Lab appears as a planned module (21 navigation entries).
 
+## Completed (v0.6.0 — Build 5)
+
+- **Aerodynamics** (`js/engineering/aerodynamics.js`, page `js/modules/aerodynamics.js`, route `aerodynamics`):
+  - lifting line (Glauert) and DATCOM sweep;
+  - aerofoil presets with Reynolds-corrected c_l,max;
+  - Raymer drag build-up and polar;
+  - stall, V_md, V_mp and power required;
+  - neutral point, static margin and suggested CG.
+
+  Checks AE-*. Feeds the cruise L/D in Propulsion & Energy and the glide-sonde drag (C_D0 at the local Re).
+- **Structural Analysis** (`js/engineering/structures.js`, page `js/modules/structures.js`):
+  - spar and arm/boom tubes, auto-sized or manual;
+  - stress, margin of safety, deflection;
+  - arm f₁ against 1P/2P;
+  - typical material records;
+  - the pull-out load from the balloon mission.
+
+  Checks ST-*.
+- **Formula Library** (`js/engineering/expression.js`, `formulas.js`, `custom-formulas.js`, page `js/modules/formulas.js`, route `formulas`):
+  - 40 built-in formulas with calculators and code/test/doc/reference links;
+  - per-project user formulas (add/change/delete, unit checking, limits) in the review and summary.
+
+  The procedure is in `docs/formulas.md`; the test `tests/engineering/formulas.test.mjs` keeps the registry, code and docs in step.
+- **Example designs** (`js/engineering/templates.js`): six complete designs from "Start from an example".
+- Layout-matched example parts.
+- "Suggest a balloon".
+- **Dashboard:** welcome hero and Design health card.
+- **Design flow:** nine steps.
+- **Lessons:** "Wing aerodynamics, drag and balance" and "Sizing spars and arms" (polar and beam calculators).
+- Project schema **v6** (`modules.aerodynamics`, `modules.structures`, `modules.formulas`).
+- **Fixed:** sideways scrolling on phones on pages with the flow bar; the mobile test now catches it.
+
 ## Completed (v0.5.0 — Build 4 and more)
 
 - **Propulsion & Energy** (`js/engineering/propulsion.js`, page `js/modules/propulsion.js`, routes `propulsion` and `power`):
@@ -87,18 +119,19 @@ Single source of truth for where development stands. Read this at the start of e
 
 ## Pending modules
 
-3D Studio mass/CG/placement (Build 5) · Avionics link budget and SDR (Build 7) · Propeller at forward speed (Build 5) · Aerodynamics, Structural Analysis (Build 5) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab remainder: sensor models, WMO export, glide wind drift (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
+3D Studio mass/CG/placement (Build 6) · Avionics link budget and SDR (Build 7) · Propeller at forward speed (Build 6) · Aerodynamics remainder: vortex lattice, flaps, twist (Build 6) · Structures remainder: torsion, joints, composite lay-ups (Build 11) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab remainder: sensor models, WMO export, glide wind drift (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
 
 ## Known issues and limitations
 
 - No known functional bugs.
 - Panels can be collapsed and resized but not rearranged (deferred; prompt says "where practical").
 - The simulation-status indicator is static until the simulator exists (Build 6).
-- Interactive charts are basic SVG; Chart.js arrives in Build 4.
+- Interactive charts are basic SVG (sufficient so far; no Chart.js dependency).
 - The 3D model is a conceptual shape: flat surfaces, no aerofoil thickness, landing gear or components yet.
-- The geometry review uses MTOW from the requirements; there is no mass estimate yet (Build 4).
-- The glide-sonde simulation has no wind in the glide and uses user-supplied C_D0/C_Lmax; the balloon ascent rate rises with height under the constant-C_D assumption (real balloons climb at a more nearly constant rate).
-- The fixed-wing cruise power uses an estimated L/D until Build 5.
+- The glide-sonde simulation has no wind in the glide (drag comes from the Aerodynamics model when the design wing is used); the balloon ascent rate rises with height under the constant-C_D assumption (real balloons climb at a more nearly constant rate).
+- Aerodynamics: untwisted wings, no flaps, lifting line is less accurate below AR ≈ 4 and for high sweep (deltas); the fuselage term of the neutral point is an approximate fit. CG is entered by hand until component placement (Build 6).
+- Structures: round tubes and beam theory only; no torsion, joints, skins or buckling.
+- Multirotor forward-flight drag is not modelled yet (Build 6).
 - Component data merges as one unit in Drive sync: if two devices edit components at the same time, the later edit set wins. Other project fields still merge field by field.
 - When a Drive merge combines a category change with a layout edit from another device, the Architecture page asks for a layout. This is handled, but the user has to choose one.
 - Projects are per browser and per origin (hosted site vs. localhost); move them with backups.
@@ -128,4 +161,4 @@ Single source of truth for where development stands. Read this at the start of e
 
 ## Next exact task
 
-**Build 5, task 1:** aerodynamics. Add a lifting-line or vortex-lattice wing model, aerofoil polars including low-Reynolds data, a drag build-up and the L/D polar. These replace the L/D estimates in Propulsion & Energy and the glide-sonde C_D0/C_Lmax inputs. See `docs/roadmap.md` (Build 5 plan).
+**Build 6, task 1:** CG and inertia from component placement in the 3D studio, so the static margin uses the computed CG. Then propeller at forward speed, the 6-DoF flight-dynamics model and the OpenVSP bridge. See `docs/roadmap.md` (Build 6 plan).

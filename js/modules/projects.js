@@ -59,6 +59,54 @@ function categoryChoices(name, selected) {
   );
 }
 
+/** Dialog: create a complete, working design from a ready-made example. */
+export async function exampleProjectDialog(ctx) {
+  const { projects } = ctx;
+  if (!projects) {
+    ctx.notify({ level: 'warning', title: 'Local storage unavailable', message: 'Projects cannot be created in this browser context.' });
+    return null;
+  }
+  const { DESIGN_TEMPLATES, templateProject } = await import('../engineering/templates.js');
+  const choices = h(
+    'fieldset',
+    { class: 'choice-grid choice-grid--examples' },
+    h('legend', { class: 'field__label' }, 'Choose an example design'),
+    DESIGN_TEMPLATES.map((t, i) =>
+      h(
+        'label',
+        { class: 'choice' },
+        h('input', { type: 'radio', name: 'ex-template', value: t.id, checked: i === 0 }),
+        h('span', { class: 'choice__icon' }, icon(categoryInfo(t.category)?.icon ?? (t.sounding ? 'balloon' : 'folder'), { size: 22 })),
+        h('span', { class: 'choice__title' }, t.name),
+        h('span', { class: 'choice__text' }, t.summary),
+      ),
+    ),
+  );
+  let created = null;
+  await openDialog({
+    title: 'Start from an example',
+    size: 'lg',
+    description: 'A complete starting design — targets, layout, matched parts, motor and propeller — that already passes its main checks. Every part is an illustrative example: replace values with your own datasheets as you go.',
+    body: [choices],
+    actions: [
+      { label: 'Cancel', value: 'cancel' },
+      { label: 'Create this design', value: 'create', variant: 'primary' },
+    ],
+    onSubmit: async (_, form) => {
+      const id = form.querySelector('input[name="ex-template"]:checked')?.value ?? DESIGN_TEMPLATES[0].id;
+      created = await projects.createProject(templateProject(id));
+      return true;
+    },
+  });
+  if (created) {
+    ctx.notify({ level: 'success', title: 'Example design created', message: `“${created.name}” is open. Follow the design flow from step 1, or jump to the summary.` });
+    ctx.actions.requestPersistence({ quiet: true });
+    await projects.openProject(created.id);
+    ctx.router.navigate('summary');
+  }
+  return created;
+}
+
 export async function newProjectDialog(ctx) {
   const { projects } = ctx;
   if (!projects) {
@@ -79,7 +127,7 @@ export async function newProjectDialog(ctx) {
       field({ id: nameId, label: 'Project name', control: name }),
       categoryChoices('np-category', 'multirotor'),
       h('div', { class: 'form-row' }, field({ id: appId, label: 'Application', control: application }), field({ id: descId, label: 'Description (optional)', control: description, wide: true })),
-      h('p', { class: 'notice notice--info' }, icon('info', { size: 16 }), 'After creating the project, choose its layout and dimensions in Drone Architecture and set its design requirements.'),
+      h('p', { class: 'notice notice--info' }, icon('info', { size: 16 }), 'After creating the project, the design flow takes you step by step: targets, layout, avionics, propulsion, aerodynamics, structures. New to this? ', h('a', { href: '#', onClick: (e) => { e.preventDefault(); e.target.closest('dialog')?.querySelector('[data-dismiss]')?.click(); setTimeout(() => exampleProjectDialog(ctx), 50); } }, 'Start from a ready-made example instead.')),
     ],
     actions: [
       { label: 'Cancel', value: 'cancel' },
@@ -157,7 +205,7 @@ async function renderList(container, ctx) {
                   icon: 'folder',
                   title: 'No projects yet',
                   message: 'Create a project to record requirements, notes and versions. Everything is stored locally in this browser.',
-                  actions: [button({ label: 'New project', icon: 'plus', variant: 'primary', onClick: () => actions.newProject() }), button({ label: 'Import project', icon: 'upload', onClick: () => actions.importProject() })],
+                  actions: [button({ label: 'New project', icon: 'plus', variant: 'primary', onClick: () => actions.newProject() }), button({ label: 'Start from an example', icon: 'copy', onClick: () => actions.newFromExample() }), button({ label: 'Import project', icon: 'upload', onClick: () => actions.importProject() })],
                 }),
           ]),
     );
@@ -181,7 +229,7 @@ async function renderList(container, ctx) {
       title: 'My Projects',
       icon: 'folder',
       subtitle: 'Design projects stored in this browser. Export projects or full backups to keep copies elsewhere.',
-      actions: [button({ label: 'New project', icon: 'plus', variant: 'primary', onClick: () => actions.newProject() }), button({ label: 'Import', icon: 'upload', onClick: () => actions.importProject() })],
+      actions: [button({ label: 'New project', icon: 'plus', variant: 'primary', onClick: () => actions.newProject() }), button({ label: 'Start from an example', icon: 'copy', onClick: () => actions.newFromExample() }), button({ label: 'Import', icon: 'upload', onClick: () => actions.importProject() })],
     }),
     h(
       'div',

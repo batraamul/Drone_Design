@@ -172,7 +172,8 @@ export function simulateGlide(a, zRelease, zEnd) {
     if (!pullOutDone) cl = q > 1e-9 ? Math.min(a.clMax, (a.maxLoadFactor * W) / (q * a.wingArea)) : a.clMax;
     else cl = Math.max(0, Math.min(a.clMax, clGlide + 2.5 * (gammaEq - s.gamma)));
     const L = cl * q * a.wingArea;
-    const D = (a.cd0 + k * cl * cl) * q * a.wingArea;
+    const cd0 = a.cd0Fn ? a.cd0Fn(Math.max((atm.density * Math.max(s.V, 0.1) * chord) / atm.dynamicViscosity, 1e3)) : a.cd0;
+    const D = (cd0 + k * cl * cl) * q * a.wingArea;
     return { L, D, q, cl, atm };
   };
   const deriv = (s) => {
@@ -273,8 +274,12 @@ export function analyseSounding({ sounding, designMass = null, designWing = null
   }
   if (sounding.gas === 'hydrogen') notes.push('Hydrogen is flammable: filling needs a hydrogen safety procedure, earthing, no ignition sources and trained staff.');
 
-  const aircraft = { mass, wingArea: wing.area, wingSpan: wing.span, chord: wing.mac, cd0: p.cd0, oswald: p.oswald, clMax: p.clMax, maxLoadFactor: p.maxLoadFactor };
-  const result = { ascent, stages, checks, derived, notes, glide: null, powered: null, mass, wing, totalTime: ascent.timeToRelease };
+  const aero = sounding.useDesignWing && designWing?.aero ? designWing.aero : null;
+  const aircraft = aero
+    ? { mass, wingArea: wing.area, wingSpan: wing.span, chord: wing.mac, cd0: aero.cd0, cd0Fn: aero.cd0At, oswald: aero.oswald, clMax: aero.clMaxWing, maxLoadFactor: p.maxLoadFactor }
+    : { mass, wingArea: wing.area, wingSpan: wing.span, chord: wing.mac, cd0: p.cd0, oswald: p.oswald, clMax: p.clMax, maxLoadFactor: p.maxLoadFactor };
+  if (aero) notes.push('Drag, Oswald factor and C_Lmax come from the Aerodynamics page; zero-lift drag is recomputed for the local Reynolds number at every step of the glide.');
+  const result = { ascent, stages, checks, derived, notes, glide: null, powered: null, mass, wing, aircraft, aeroFromDesign: Boolean(aero), totalTime: ascent.timeToRelease };
   if (!ascent.reachesRelease) return result;
 
   const zRel = ascent.releaseAltitudeAMSL;
@@ -291,11 +296,11 @@ export function analyseSounding({ sounding, designMass = null, designWing = null
   derived.push(
     { id: 'sd-rel-p', label: 'Pressure at release', symbol: 'p_rel', value: relAtm.pressure, unit: 'Pa', displayUnit: 'hPa', equation: 'ISA', inputs: [], provenance: 'analytical' },
     { id: 'sd-rel-t', label: 'Temperature at release (ISA)', symbol: 'T_rel', value: relAtm.temperature, unit: 'K', displayUnit: '°C', equation: 'ISA', inputs: [], provenance: 'analytical' },
-    { id: 'sd-ld', label: 'Best lift-to-drag ratio', symbol: '(L/D)max', value: glide.polar.ldMax, unit: '1', equation: '(L/D)max = 1 / (2 √(C_D0 k)),  k = 1/(π e AR)', inputs: [q('C_D0', 'Zero-lift drag', p.cd0, '1'), q('e', 'Oswald efficiency', p.oswald, '1')], provenance: 'conceptual-estimate' },
+    { id: 'sd-ld', label: 'Best lift-to-drag ratio', symbol: '(L/D)max', value: glide.polar.ldMax, unit: '1', equation: '(L/D)max = 1 / (2 √(C_D0 k)),  k = 1/(π e AR)', inputs: [q('C_D0', 'Zero-lift drag', aircraft.cd0, '1'), q('e', 'Oswald efficiency', aircraft.oswald, '1')], provenance: 'conceptual-estimate' },
   );
   if (po) {
     derived.push(
-      { id: 'sd-stall-loss', label: 'Altitude lost in the stall drop and pull-out', symbol: 'Δh_pull', value: zRel - po.h, unit: 'm', equation: '2-D point-mass simulation (RK4)', inputs: [q('n_max', 'Load-factor limit', p.maxLoadFactor, '1'), q('C_Lmax', 'Maximum lift coefficient', p.clMax, '1')], provenance: 'analytical', assumptions: ['Released from rest relative to the air, nose down.', 'Pull-out at the load-factor limit or C_Lmax, whichever is lower.'] },
+      { id: 'sd-stall-loss', label: 'Altitude lost in the stall drop and pull-out', symbol: 'Δh_pull', value: zRel - po.h, unit: 'm', equation: '2-D point-mass simulation (RK4)', inputs: [q('n_max', 'Load-factor limit', p.maxLoadFactor, '1'), q('C_Lmax', 'Maximum lift coefficient', aircraft.clMax, '1')], provenance: 'analytical', assumptions: ['Released from rest relative to the air, nose down.', 'Pull-out at the load-factor limit or C_Lmax, whichever is lower.'] },
       { id: 'sd-stall-time', label: 'Time to complete the pull-out', symbol: 't_pull', value: po.t, unit: 's', equation: 'simulation', inputs: [], provenance: 'analytical' },
       { id: 'sd-maxv', label: 'Highest true airspeed', symbol: 'V_max', value: glide.stats.maxV, unit: 'm/s', equation: 'simulation', inputs: [], provenance: 'analytical' },
       { id: 'sd-maxmach', label: 'Highest Mach number', symbol: 'M_max', value: glide.stats.maxMach, unit: '1', equation: 'M = V / a(h)', inputs: [], provenance: 'analytical' },

@@ -6,7 +6,9 @@
 
 Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
-## What it does (Builds 1–4)
+## What it does (Builds 1–5)
+
+- **Start from an example** — six complete working designs (survey quad, heavy-lift hexa, mapping fixed wing, VTOL quadplane, micro quad, balloon glide-sonde) to learn from and edit; or start blank and follow the nine-step design flow.
 
 - **Projects** — create, duplicate, tag, describe, version, compare, restore, Trash, import/export and full backups; autosave with protection against two tabs overwriting each other; undo/redo.
 - **Design requirements** — MTOW, payload, endurance, range, cruise airspeed, operating altitude and maximum wind, stored in SI units with display units of your choice, with live consistency checks (each shows its equation, inputs, assumptions and provenance).
@@ -21,10 +23,13 @@ Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 - **3D Design Studio** (Build 2) — rotate, pan and zoom a 3D conceptual model built from the same numbers, with standard views. The 2D drawings are shown if WebGL is unavailable.
 - **Avionics Laboratory** (Build 3) — add batteries, regulators, flight controller, ESCs, radios, GNSS, sensors and payloads. Connect power and data and see a block diagram. A worst-case power budget per rail and compatibility checks cover voltages, current ratings, ports and 3.3 V/5 V logic levels. The **Component Library** offers illustrative example parts; your own parts carry their datasheet source.
 - **Propulsion & Energy** (Build 4) — match motor, propeller and battery: hover power, throttle, thrust-to-weight, battery sag, mass budget, endurance and range, including hot-and-high conditions.
-- **Design flow and Design Summary** — seven steps from targets to a printable build sheet with parts list (CSV), key results with provenance, and paper and patent guidance.
+- **Aerodynamics** (Build 5) — aerofoil, lifting-line span efficiency, drag build-up, drag polar, stall and best-glide/endurance speeds, power required, neutral point, static margin and suggested CG.
+- **Structural Analysis** (Build 5) — wing spar and arm/boom tubes, auto-sized from common sizes: stress and margin of safety, deflection, and arm vibration against the rotor frequencies.
+- **Formula Library** (Build 5) — every built-in equation with a calculator and links to its code, test and reference; add, change and delete your own unit-checked formulas that use any design value and appear in the review and summary ([procedure](docs/formulas.md)).
+- **Design flow and Design Summary** — nine steps from targets to a printable build sheet with parts list (CSV), key results with provenance, and paper and patent guidance.
 - **Stratospheric Sounding Lab** (early Build 13) — carry the aircraft to 33 km on a balloon, simulate the release, stall and pull-out, the glide with sonde sampling and a hybrid powered return; wind-aware ascent prediction (SondeHub/Tawhiri) with KML export.
 - **Open-source tools** — export the 3D model to STL/glTF for FreeCAD, OpenVSP, Blender or 3D printing; the Learning Centre links NPTEL, Coursera and MIT courses, books, UIUC propeller data, and tools such as XFLR5, ArduPilot, PX4 and QGroundControl.
-- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, wing planform and tail sizing, avionics power budgets, propulsion matching and balloon glide-sondes, with calculators and knowledge checks; searchable glossary.
+- **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, wing planform and tail sizing, avionics power budgets, propulsion matching and balloon glide-sondes, wing aerodynamics and balance, and spar and arm sizing, with calculators and knowledge checks; searchable glossary.
 - **Workstation** — dark/light themes, command palette (`Ctrl/⌘ + K`), resizable inspector and engineering console (log, problems, calculation register), offline use and installable PWA.
 
 ## Install it
@@ -115,6 +120,7 @@ docs/           architecture, roadmap, engineering-models, data-model, ai-models
 - [`docs/architecture.md`](docs/architecture.md) — architecture, libraries, simulation/AI approach, risks, acceptance evidence
 - [`docs/engineering-models.md`](docs/engineering-models.md) — equations, assumptions, validation
 - [`docs/data-model.md`](docs/data-model.md) — project schema, storage, file formats, migrations
+- [`docs/formulas.md`](docs/formulas.md) — how to add, change or delete formulas (yours and built-in)
 - [`docs/ai-models.md`](docs/ai-models.md) — AI scope and rules
 - [`docs/deployment.md`](docs/deployment.md) — CI/CD, updates, rollback
 - [`docs/roadmap.md`](docs/roadmap.md)

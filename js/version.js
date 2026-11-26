@@ -7,9 +7,9 @@
  */
 export const APP_NAME = 'AEROLAB X';
 export const APP_TAGLINE = 'Drone Design, Intelligence & Simulation Studio';
-export const APP_VERSION = '0.5.0';
-export const BUILD_NUMBER = 4;
-export const BUILD_NAME = 'Propulsion, energy and design flow';
+export const APP_VERSION = '0.6.0';
+export const BUILD_NUMBER = 5;
+export const BUILD_NAME = 'Aerodynamics, structures and Formula Library';
 export const TOTAL_BUILDS = 12;
 
 /** Canonical hosted location (GitHub Pages project site). */

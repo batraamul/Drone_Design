@@ -19,10 +19,11 @@ test('small screens use drawers and never scroll horizontally', async ({ page })
   await page.keyboard.press('Escape');
   await expect(page.locator('#inspector')).not.toBeInViewport();
 
-  for (const hash of ['#/dashboard', '#/projects', '#/settings', '#/learning/standard-atmosphere', '#/propulsion']) {
+  for (const hash of ['#/dashboard', '#/projects', '#/settings', '#/learning/standard-atmosphere', '#/propulsion', '#/formulas']) {
     await page.goto(`./${hash}`);
-    await expect(page.locator('.view h1')).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    await expect(page.locator(`.view[data-view="${hash.split("/")[1].split("?")[0]}"] h1`)).toBeVisible();
+    await page.waitForTimeout(150);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - Math.min(window.innerWidth, screen.width));
     expect(overflow, `horizontal overflow on ${hash}`).toBeLessThanOrEqual(0);
   }
   expect(errors).toEqual([]);
@@ -37,10 +38,11 @@ test('Build 2 pages fit small screens with a project open', async ({ page }) => 
   const dialog = page.getByRole('dialog', { name: 'New project' });
   await dialog.getByLabel('Project name').fill('Phone');
   await dialog.getByRole('button', { name: /Create/ }).click();
-  for (const hash of ['#/architecture', '#/design-studio', '#/learning/rotor-layout-hover', '#/learning/wing-planform-tail', '#/avionics', '#/components', '#/learning/avionics-power-interfaces', '#/propulsion', '#/sounding', '#/summary', '#/learning/resources', '#/learning/balloon-glidesonde']) {
+  for (const hash of ['#/architecture', '#/design-studio', '#/learning/rotor-layout-hover', '#/learning/wing-planform-tail', '#/avionics', '#/components', '#/learning/avionics-power-interfaces', '#/propulsion', '#/sounding', '#/summary', '#/learning/resources', '#/learning/balloon-glidesonde', '#/aerodynamics', '#/structures', '#/formulas', '#/formulas?tab=yours', '#/learning/aerodynamics-stability', '#/learning/structures-sizing']) {
     await page.goto(`./${hash}`);
-    await expect(page.locator('.view h1')).toBeVisible();
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    await expect(page.locator(`.view[data-view="${hash.split("/")[1].split("?")[0]}"] h1`)).toBeVisible();
+    await page.waitForTimeout(150);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - Math.min(window.innerWidth, screen.width));
     expect(overflow, `horizontal overflow on ${hash}`).toBeLessThanOrEqual(0);
   }
   expect(errors).toEqual([]);

@@ -27,22 +27,22 @@ test('design flow leads from page to page', async ({ page }) => {
   const errors = collectErrors(page);
   await newProject(page, 'Flow test');
   await go(page, '#/architecture');
-  await expect(page.locator('.flow__goal')).toContainText('Step 2 of 7');
+  await expect(page.locator('.flow__goal')).toContainText('Step 2 of 9');
   await page.locator('.flow').getByRole('button', { name: 'Next: Avionics & electronics' }).click();
   await expect(page.locator('.view h1')).toContainText('Avionics Laboratory');
-  await page.getByRole('button', { name: 'Add example quadcopter set' }).click();
+  await page.getByRole('button', { name: 'Add example parts set' }).click();
   await page.locator('.flow').getByRole('button', { name: 'Next: Propulsion & energy' }).click();
   await expect(page.locator('.view h1')).toContainText('Propulsion & Energy');
   await expect(page.locator('.flow__step--current')).toContainText('Propulsion');
   await go(page, '#/dashboard');
-  await expect(page.locator('.flow-list__item')).toHaveCount(7);
+  await expect(page.locator('.flow-list__item')).toHaveCount(9);
   expect(errors).toEqual([]);
 });
 
 test('propulsion results follow motor and diameter changes', async ({ page }) => {
   await newProject(page, 'Propulsion test');
   await go(page, '#/avionics');
-  await page.getByRole('button', { name: 'Add example quadcopter set' }).click();
+  await page.getByRole('button', { name: 'Add example parts set' }).click();
   await go(page, '#/propulsion');
   const power = page.locator('.stat', { hasText: 'Hover power' }).locator('.stat__value');
   await expect(power).toBeVisible();
@@ -70,7 +70,7 @@ test('balloon glide-sonde mission: four stages, burst check responds to balloon 
   const errors = collectErrors(page);
   await newProject(page, 'Sonde test', 'Fixed wing');
   await go(page, '#/avionics');
-  await page.getByRole('button', { name: 'Add example quadcopter set' }).click();
+  await page.getByRole('button', { name: 'Add example parts set' }).click();
   await go(page, '#/sounding');
   await page.getByLabel('Plan a balloon-launched glide-sonde mission for this design').check();
   await expect(page.locator('.stages-table tbody tr')).toHaveCount(4);
@@ -87,7 +87,7 @@ test('balloon glide-sonde mission: four stages, burst check responds to balloon 
 test('summary: parts list CSV and printable build sheet', async ({ page }) => {
   await newProject(page, 'Summary test');
   await go(page, '#/avionics');
-  await page.getByRole('button', { name: 'Add example quadcopter set' }).click();
+  await page.getByRole('button', { name: 'Add example parts set' }).click();
   await go(page, '#/summary');
   await expect(page.locator('.view h1')).toContainText('Design Summary');
   const download = page.waitForEvent('download');

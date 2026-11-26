@@ -9,7 +9,7 @@ import { icon } from '../ui/icons.js';
 import { badge, button, card, checkCard, derivedList, emptyState, field, formatQuantity, nextId, pageHeader, progressBar, provenanceBadge, quantityInput, selectControl } from '../ui/components.js';
 import { openDialog, confirmDialog } from '../ui/dialog.js';
 import { CHEMISTRIES, COMPONENT_TYPES, CONNECTION_KINDS, INTERFACE_KINDS, LIMITS, PROVENANCE_OPTIONS, SPEC_FIELDS, canSupply, componentType, createComponent, createConnection, validateSpecValue } from '../engineering/components.js';
-import { CATALOGUE, exampleQuadSet } from '../engineering/catalogue.js';
+import { CATALOGUE, exampleSet, exampleSetKind } from '../engineering/catalogue.js';
 import { provenanceInfo } from '../engineering/provenance.js';
 import { LINK_STYLES, drawBlockDiagram } from '../visualisation/block-diagram.js';
 import { flowBar } from '../ui/design-flow.js';
@@ -380,12 +380,14 @@ export async function mount(container, ctx) {
       data.items.length
         ? null
         : button({
-            label: 'Add example quadcopter set',
+            label: 'Add example parts set',
             icon: 'multirotor',
             onClick: () => {
-              const set = exampleQuadSet({ createComponent, createConnection });
+              const kind = exampleSetKind(store.doc.modules?.configuration?.layout, store.doc.category);
+              const rotors = ctx.engineering.geometry()?.rotors?.length;
+              const set = exampleSet(kind, { createComponent, createConnection }, rotors ? { motors: rotors } : {});
               setComponents(store, set, 'Add example avionics set');
-              ctx.notify({ level: 'info', title: 'Example set added', message: 'Seven illustrative components, already connected. Replace their values with your own datasheets.' });
+              ctx.notify({ level: 'info', title: 'Example set added', message: `${set.items.length} illustrative components matched to this layout, already connected. Replace their values with your own datasheets.` });
             },
           }),
     );

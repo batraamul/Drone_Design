@@ -2,11 +2,11 @@
 
 All engineering quantities are stored in **SI units**. Every document carries a schema version so it can be migrated forward.
 
-## 1. Project document (schema version 5)
+## 1. Project document (schema version 6)
 
 | Field | Type | Description |
 |---|---|---|
-| `schemaVersion` | integer | Document schema version (currently 5; 1 = Build 1, 2 = Build 2, 3 = Build 3, 4 = Build 4, 5 = balloon mission) |
+| `schemaVersion` | integer | Document schema version (currently 6; 1 = Build 1, 2 = Build 2, 3 = Build 3, 4 = Build 4, 5 = balloon mission, 6 = Build 5) |
 | `id` | string `prj_…` | Stable project identifier |
 | `revision` | integer | Persistence revision; increments on every save; used for conflict detection |
 | `name` | string ≤ 120 | Project name |
@@ -72,6 +72,31 @@ The params, all in SI, are:
 - sonde and hybrid stage: `sampleInterval`, `hybridAltitude`, `poweredLD`, `poweredEfficiency`.
 
 `enabled` is false by default; the 4→5 migration adds it disabled.
+
+### Aerodynamics (`modules.aerodynamics`, schema 6)
+
+`{ aerofoil: { name, catalogueId, provenance, source, specs }, settings }`
+
+- Aerofoil specs (SI; angles in rad): `thickness`, `xMaxThickness`, `liftSlope` (per rad), `alphaZeroLift`, `clMax`, `reRef`, `cm0`.
+- Settings: `cg` (m behind the nose, or `null` to show a suggested CG), `laminarFraction`, `miscDrag`, `extraDragArea` (m²), `boomDiameter` (m), `tailEfficiency`.
+
+The 5→6 migration picks an aerofoil preset for the layout: MH 45 for flying wings and deltas, SD7037 for gliders, Clark Y otherwise.
+
+### Structures (`modules.structures`, schema 6)
+
+`{ material, armMaterial, settings: { loadFactor, safetyFactor, sparOuter, sparWall, armOuter, armWall } }`
+
+- `material` and `armMaterial` are ids from `MATERIALS`.
+- The four tube dimensions (m) are `null` when the tube is auto-sized.
+
+### Your formulas (`modules.formulas`, schema 6)
+
+`{ items: [{ id: 'fml_…', name, symbol, expression, unit, description, check: null | { op: '<=' | '>=', limit, severity: 'warning' | 'error' | 'info' } }] }`
+
+- At most 100 formulas.
+- Symbols are unique identifiers and must not be a function or constant name.
+- `unit` is a key of `UNIT_DIMENSIONS` in `js/engineering/expression.js`.
+- On import, invalid entries are dropped with a warning.
 
 ### Requirement entry
 

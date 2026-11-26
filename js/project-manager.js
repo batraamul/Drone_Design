@@ -236,6 +236,7 @@ export class ProjectManager extends Emitter {
   async createProject(init = {}) {
     const now = this.#now();
     const doc = createProject(init, { now });
+    if (init.modules && typeof init.modules === 'object') doc.modules = { ...doc.modules, ...structuredClone(init.modules) };
     doc.revision = 1;
     const errors = validateProject(doc);
     if (errors.length) throw new ProjectFormatError(`Invalid new project: ${errors[0].path} ${errors[0].message}`);

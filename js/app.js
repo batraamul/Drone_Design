@@ -30,6 +30,9 @@ import { analyseElectrical } from './engineering/electrical.js';
 import { analysePropulsion } from './engineering/propulsion.js';
 import { analyseSounding } from './engineering/sounding.js';
 import { soundingInputs } from './modules/sounding.js';
+import { aerodynamicModel, analyseAerodynamics } from './engineering/aerodynamics.js';
+import { analyseStructures } from './engineering/structures.js';
+import { evaluateFormulas } from './engineering/custom-formulas.js';
 import { REQUIREMENT_KEYS } from './engineering/requirements.js';
 import { getModule } from './modules/module-registry.js';
 import * as dashboardView from './modules/dashboard.js';
@@ -43,20 +46,30 @@ import * as avionicsView from './modules/avionics.js';
 import * as componentLibraryView from './modules/component-library.js';
 import * as propulsionView from './modules/propulsion.js';
 import * as soundingView from './modules/sounding.js';
+import * as aerodynamicsView from './modules/aerodynamics.js';
+import * as structuresView from './modules/structures.js';
+import * as formulasView from './modules/formulas.js';
 import * as summaryView from './modules/summary.js';
 import { downloadJSON, pickFile, readFileText, timestampForFile } from './utils/file.js';
 import { slugify } from './utils/format.js';
 import { APP_NAME, APP_VERSION, BUILD_NUMBER } from './version.js';
 
-const VIEWS = { dashboard: dashboardView, projects: projectsView, settings: settingsView, learning: learningView, architecture: architectureView, 'design-studio': designStudioView, avionics: avionicsView, components: componentLibraryView, propulsion: propulsionView, power: propulsionView, sounding: soundingView, summary: summaryView };
+const VIEWS = { dashboard: dashboardView, projects: projectsView, settings: settingsView, learning: learningView, architecture: architectureView, 'design-studio': designStudioView, avionics: avionicsView, components: componentLibraryView, propulsion: propulsionView, power: propulsionView, sounding: soundingView, summary: summaryView, aerodynamics: aerodynamicsView, structures: structuresView, formulas: formulasView };
 
 const EMPTY_EVALUATION = Object.freeze({ checks: [], derived: [], completeness: { set: 0, total: REQUIREMENT_KEYS.length } });
 
 /** One design review from the requirement checks and the geometry checks. */
-function combineReview(requirements, geometry, electrical, propulsion, sounding) {
-  const parts = [geometry, electrical, propulsion, sounding].filter(Boolean);
+function combineReview(requirements, geometry, electrical, propulsion, sounding, aerodynamics = null, structures = null) {
+  const parts = [geometry, electrical, propulsion, aerodynamics, structures, sounding].filter(Boolean);
   const checks = [...requirements.checks, ...parts.flatMap((p) => p.checks)].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-  return { ...requirements, checks, derived: [...requirements.derived, ...parts.flatMap((p) => p.derived)], geometry, electrical, propulsion, sounding };
+  return { ...requirements, checks, derived: [...requirements.derived, ...parts.flatMap((p) => p.derived)], geometry, electrical, propulsion, sounding, aerodynamics, structures };
+}
+
+/** Add the user's own formulas (results and limit checks) to the review. */
+function withFormulas(review, formulas) {
+  if (!formulas || (!formulas.checks.length && !formulas.derived.length)) return { ...review, formulas };
+  const checks = [...review.checks, ...formulas.checks].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+  return { ...review, checks, derived: [...review.derived, ...formulas.derived], formulas };
 }
 
 function createActions(ctx) {
@@ -74,6 +87,7 @@ function createActions(ctx) {
 
   const actions = {
     newProject: () => (needStorage() ? projectsView.newProjectDialog(ctx) : null),
+    newFromExample: () => (needStorage() ? projectsView.exampleProjectDialog(ctx) : null),
 
     async importProject() {
       if (!needStorage()) return;
@@ -319,6 +333,7 @@ function createActions(ctx) {
       const storage = Boolean(projects());
       return [
         storage && { label: 'New project…', icon: 'plus', hint: 'Create a design project', projectScope: true, run: () => actions.newProject() },
+        storage && { label: 'Start from an example design…', icon: 'copy', hint: 'Survey quad, fixed wing, VTOL, glide-sonde…', projectScope: true, run: () => actions.newFromExample() },
         storage && { label: 'Import project from file…', icon: 'upload', projectScope: true, run: () => actions.importProject() },
         open && { label: 'Save now', icon: 'save', hint: 'Ctrl+S', run: () => actions.saveNow() },
         open && { label: 'Save version of the current project…', icon: 'history', run: () => actions.saveVersion() },
@@ -417,20 +432,45 @@ async function boot() {
     compute: (components) => analyseElectrical(components),
     meta: { title: 'Electrical architecture', model: 'Rail voltages, worst-case power budget, interface checks (docs/engineering-models.md §6)' },
   });
+  store.define('aeroModel', {
+    deps: [['modules', 'aerodynamics'], ['modules', 'configuration'], { node: 'geometry' }, 'requirements'],
+    compute: (aerodynamics, configuration, geometry, requirements) => aerodynamicModel({ aerodynamics, configuration, geometry, requirements }),
+    meta: { title: 'Aerodynamic model', model: 'Lifting line, drag build-up, neutral point (docs/engineering-models.md §9)' },
+  });
   store.define('propulsion', {
-    deps: [['modules', 'propulsion'], { node: 'geometry' }, 'requirements', ['modules', 'components'], { node: 'electrical' }],
-    compute: (propulsion, geometry, requirements, components, electrical) => analysePropulsion({ propulsion, geometry, requirements, components, electrical }),
+    deps: [['modules', 'propulsion'], { node: 'geometry' }, 'requirements', ['modules', 'components'], { node: 'electrical' }, { node: 'aeroModel' }],
+    compute: (propulsion, geometry, requirements, components, electrical, aero) => analysePropulsion({ propulsion, geometry, requirements, components, electrical, aero }),
     meta: { title: 'Propulsion and energy', model: 'Propeller/motor operating point, battery model, mass budget, endurance (docs/engineering-models.md §7)' },
   });
+  store.define('aerodynamics', {
+    deps: [{ node: 'aeroModel' }, { node: 'propulsion' }, 'requirements'],
+    compute: (model, propulsion, requirements) => (model ? analyseAerodynamics({ model, mass: propulsion?.mass?.total, requirements }) : null),
+    meta: { title: 'Aerodynamics', model: 'Drag polar, performance and static stability (docs/engineering-models.md §9)' },
+  });
   store.define('sounding', {
-    deps: [['modules', 'sounding'], { node: 'propulsion' }, { node: 'geometry' }],
-    compute: (sounding, propulsion, geometry) => (sounding?.enabled ? analyseSounding(soundingInputs(sounding, propulsion, geometry)) : null),
+    deps: [['modules', 'sounding'], { node: 'propulsion' }, { node: 'geometry' }, { node: 'aeroModel' }],
+    compute: (sounding, propulsion, geometry, aero) => (sounding?.enabled ? analyseSounding(soundingInputs(sounding, propulsion, geometry, aero)) : null),
     meta: { title: 'Balloon glide-sonde mission', model: 'Balloon ascent, release and pull-out, glide, hybrid stage (docs/engineering-models.md §8)' },
   });
+  store.define('structures', {
+    deps: [['modules', 'structures'], { node: 'geometry' }, ['modules', 'configuration'], { node: 'propulsion' }, { node: 'aerodynamics' }, { node: 'sounding' }],
+    compute: (structures, geometry, configuration, propulsion, aerodynamics, sounding) => analyseStructures({ structures, geometry, configuration, propulsion, aerodynamics, soundingLoadFactor: sounding?.glide?.stats?.maxN ?? null }),
+    meta: { title: 'Structures', model: 'Spar and arm beam sizing, deflection and vibration (docs/engineering-models.md §10)' },
+  });
+  store.define('baseReview', {
+    deps: [{ node: 'requirements' }, { node: 'geometry' }, { node: 'electrical' }, { node: 'propulsion' }, { node: 'sounding' }, { node: 'aerodynamics' }, { node: 'structures' }],
+    compute: (requirements, geometry, electrical, propulsion, sounding, aerodynamics, structures) => combineReview(requirements, geometry, electrical, propulsion, sounding, aerodynamics, structures),
+    meta: { title: 'Design review (models)', model: 'Requirement, geometry, electrical, propulsion, aerodynamic, structural and mission checks' },
+  });
+  store.define('formulas', {
+    deps: [['modules', 'formulas'], { node: 'baseReview' }, 'requirements', ['modules', 'configuration']],
+    compute: (formulas, review, requirements, configuration) => evaluateFormulas(formulas, { doc: { requirements, modules: { configuration } }, review }),
+    meta: { title: 'Your formulas', model: 'User-defined formulas (Formula Library)' },
+  });
   store.define('review', {
-    deps: [{ node: 'requirements' }, { node: 'geometry' }, { node: 'electrical' }, { node: 'propulsion' }, { node: 'sounding' }],
-    compute: (requirements, geometry, electrical, propulsion, sounding) => combineReview(requirements, geometry, electrical, propulsion, sounding),
-    meta: { title: 'Design review', model: 'Requirement, geometry, electrical, propulsion and mission checks' },
+    deps: [{ node: 'baseReview' }, { node: 'formulas' }],
+    compute: (review, formulas) => withFormulas(review, formulas),
+    meta: { title: 'Design review', model: 'All model checks plus your own formulas' },
   });
   ctx.engineering = {
     evaluate: () => (store.hasDocument ? store.derive('review') : EMPTY_EVALUATION),
@@ -438,6 +478,10 @@ async function boot() {
     electrical: () => (store.hasDocument ? store.derive('electrical') : analyseElectrical(null)),
     propulsion: () => (store.hasDocument ? store.derive('propulsion') : null),
     sounding: () => (store.hasDocument ? store.derive('sounding') : null),
+    aeroModel: () => (store.hasDocument ? store.derive('aeroModel') : null),
+    aerodynamics: () => (store.hasDocument ? store.derive('aerodynamics') : null),
+    structures: () => (store.hasDocument ? store.derive('structures') : null),
+    formulas: () => (store.hasDocument ? store.derive('formulas') : null),
   };
 
   ctx.actions = createActions(ctx);

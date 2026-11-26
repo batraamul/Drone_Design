@@ -8,8 +8,8 @@ Fifteen controlled builds: the twelve of the master prompt (§26) plus three ext
 | 2 | Configuration and 3D design | Aircraft categories, configuration wizard, geometry parameters, initial 2D/3D conceptual models | Configurations persist and visualisations respond to parameter changes | **Complete — v0.3.0** (micro-lab models stay in Build 6) |
 | 3 | Avionics and electronics | Component catalogue, interfaces, block diagrams, power draw and compatibility checks | Components can be added, connected, saved and checked | **Complete — v0.4.0** (link budget and SDR in Build 7) |
 | 4 | Propulsion and energy | Motor/propeller/battery models, mass and power budgets, endurance estimates | Equations tested and dependent project values update | **Complete — v0.5.0** (prop at forward speed with Build 5) |
-| 5 | Aerodynamics and structures | Wing geometry, aerodynamic estimates, CG and preliminary structural models | Plots update, units are correct and model limitations are documented | Next |
-| 6 | Flight dynamics | Attitude/trajectory simulation, wind disturbance, response plots, deterministic scenarios | Reproducible simulation and visible response to parameter changes | Planned |
+| 5 | Aerodynamics and structures | Wing geometry, aerodynamic estimates, CG and preliminary structural models | Plots update, units are correct and model limitations are documented | **Complete — v0.6.0** (CG from component placement, forward-speed propeller, OpenVSP bridge move to Build 6) |
+| 6 | Flight dynamics | Attitude/trajectory simulation, wind disturbance, response plots, deterministic scenarios | Reproducible simulation and visible response to parameter changes | Next |
 | 7 | Mission and payload | Civilian payloads, camera calculations, waypoints, profiles, weather inputs, mission feasibility | Payload mass/power affects aircraft budget and mission estimates | Planned |
 | 8 | AI perception and health | Computer-vision demonstration, sensor-fusion comparisons, predictive maintenance, anomaly detection | ≥ 1 vision model or documented inference demo, two fusion approaches, a reproducible maintenance/anomaly example | Planned |
 | 9 | AI autonomy and edge computing | Benign path-planning comparisons, RL exercise, model benchmarking, edge deployment estimates | Two path planners, one safe RL exercise, transparent edge benchmark methodology | Planned |
@@ -58,13 +58,21 @@ Also in v0.5.0:
 - **STL/glTF export** of the 3D model;
 - the early **Stratospheric Sounding Lab**: balloon to 33 km, release, stall and pull-out, glide, hybrid powered stage, and SondeHub/Tawhiri wind-aware ascent with KML export.
 
-## Build 5 plan (next)
+## Build 5 (complete, v0.6.0)
 
-1. **Aerodynamics:** lifting-line or vortex-lattice wing model, aerofoil polars (including low-Reynolds data), drag build-up, and the L/D polar. This replaces the L/D estimates of Build 4 and the glide-sonde C_D0/C_Lmax inputs. ← *next exact task*
-2. **Propeller at forward speed:** C_T(J) and C_P(J) from UIUC-style tables, and the cruise operating point.
-3. **CG and inertia** from component placement in the 3D studio; static margin.
-4. **Structures:** spar and boom bending and torsion, arm deflection, first natural frequency, and pull-out loads for the glide-sonde.
-5. **OpenVSP bridge:** export a VSP script or parameter set for higher-fidelity geometry.
+1. **Aerodynamics:** lifting-line (Glauert) wing model with DATCOM sweep correction; aerofoil presets with Reynolds-corrected c_l,max; component drag build-up; drag polar, L/D, stall, best-glide and best-endurance speeds, power-required curve. Done. It now replaces the L/D estimate in Propulsion & Energy and the glide-sonde C_D0/C_Lmax/e inputs, with C_D0 recomputed at the local Reynolds number.
+2. **Stability:** neutral point (wing, tail, fuselage), static margin, suggested CG. Done.
+3. **Structures:** spar root bending, deflection, auto-sized tubes; arm/boom stress, deflection, first natural frequency against 1P/2P; balloon pull-out load. Done.
+4. **Formula Library:** built-in registry with calculators and code/test/doc links; user formulas with unit checking, limits, add/change/delete; documented procedure (`docs/formulas.md`). Done.
+5. **Ease of use:** six ready-made example designs, layout-matched example parts, balloon suggestion, dashboard welcome and design-health card, nine-step flow. Done.
+
+## Build 6 plan (next)
+
+1. **CG and inertia** from component placement in the 3D studio (mass properties feed the static margin). ← *next exact task*
+2. **Propeller at forward speed:** C_T(J), C_P(J) from UIUC-style tables; the cruise operating point.
+3. **Flight dynamics:** 6-DoF rigid-body model, linearised modes (short period, phugoid, Dutch roll), wind and gust disturbance, deterministic scenarios.
+4. **Micro Drone Laboratory** models.
+5. **OpenVSP bridge:** export a VSP script or parameter set for higher-fidelity geometry and aerodynamics.
 
 ## Extension builds 13–15 (detail)
 

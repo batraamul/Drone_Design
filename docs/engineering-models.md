@@ -373,6 +373,64 @@ Assumption: with constant C_D the model's ascent rate rises with height (w ∝ �
 - No thermal model of the battery: the cold-soak note only.
 - Simulation for planning; airspace approval is the operator's responsibility.
 
-## 9. Planned models (not implemented)
+## 9. Aerodynamics of winged aircraft — `js/engineering/aerodynamics.js` (Build 5)
 
-CG and inertia (Build 5), propeller performance at forward speed (Build 5), aerofoil and lift/drag estimates (Build 5), beam bending/torsion and vibration (Build 5), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.
+Applies to fixed-wing and VTOL layouts (any layout with a wing). Results are **conceptual estimates** for comparing designs, not validated aerodynamic data; confirm the final design with XFLR5/OpenVSP, wind-tunnel or flight test.
+
+**Inputs.** Wing plan-form and tail from §5; aerofoil record `modules.aerodynamics.aerofoil.specs` (t/c, x/c of maximum thickness, section slope a₀, α₀, c_l,max at Re_ref, c_m0) — presets are illustrative rounded values; settings (CG, laminar fraction, miscellaneous allowance, extra drag area D/q, boom diameter, tail efficiency η_t). Reference condition: ISA at the operating-altitude target, cruise-speed target (15 m/s if unset).
+
+**Lift-curve slope and span efficiency (lifting line).** Prandtl's lifting-line equation for an untwisted straight-tapered wing is solved by Glauert's method with 12 odd Fourier terms at stations θ_i = iπ/(2N):
+
+Σ A_n sin(nθ_i) [4b/(a₀ c(θ_i)) + n/sin θ_i] = α − α₀ (= 1 rad),
+
+giving C_Lα = π AR A₁ and e_LL = 1/(1 + δ), δ = Σ_{n≥3} n (A_n/A₁)². Verified: rectangular AR 6 gives e = 0.954 and a = 4.53/rad (Anderson, *Fundamentals of Aerodynamics*). Sweep is applied as the ratio of the DATCOM/Helmbold slope at the mid-chord sweep to its unswept value: C_Lα = 2πAR / (2 + √(AR²(1 + tan²Λ_c/2)/κ² + 4)), κ = a₀/2π. Lifting-line theory loses accuracy below AR ≈ 4 and at high sweep (deltas).
+
+**Maximum lift.** c_l,max(Re) = c_l,max,ref (Re/Re_ref)^0.1, clamped to 0.6–1.15 × the reference (empirical); wing C_Lmax ≈ 0.9 c_l,max cos Λ_c/4 (Raymer). Clean wing, no flaps.
+
+**Zero-lift drag (component build-up, Raymer ch. 12).** C_D0 = (Σ C_f FF Q S_wet / S + (D/q)/S)(1 + Δ_misc).
+- Skin friction: C_f = f_lam · 1.328/√Re + (1 − f_lam) · 0.455/(log₁₀ Re)^2.58, Re on each part's length (MAC, fuselage length, tail chords, boom length). Bodies use half the laminar fraction.
+- Surfaces: FF = (1 + 0.6/(x/c)_t · t/c + 100 (t/c)⁴) cos^0.28 Λ_t (low-speed: compressibility term omitted); S_wet = S_exposed (1.977 + 0.52 t/c); tails t/c 0.09, Q = 1.05.
+- Fuselage/booms: FF = 1 + 60/f³ + f/400 (f = L/d); S_wet = π d L (1 − 2/f)^⅔ (1 + 1/f²) (Torenbeek) for f > 3, else 0.75 π d L; booms Q = 1.1.
+- `cd0At(Re)` recomputes the build-up at another Reynolds number; the glide simulation (§8) calls it at every step when the design's aerodynamics are used.
+
+**Drag polar.** C_D = C_D0 + k C_L², k = 1/(π AR e), Oswald factor after Kroo: 1/e = 1/(e_LL (1 − 2(d_f/b)²)) + 0.38 C_D0 π AR. Then (L/D)max = ½√(π AR e / C_D0) at C_L* = √(C_D0/k).
+
+**Performance at the estimated take-off mass (from §7).** V_s = √(2W/(ρ S C_Lmax)); cruise C_L = 2W/(ρV²S) and L/D; V_md = √(2W/(ρ S C_L*)) (best glide/range), V_mp = V_md/3^¼ (best endurance); power required P(V) = ½ρV³S C_D0 + 2kW²/(ρVS). §7 uses the cruise L/D from this polar instead of the user estimate whenever a wing model exists.
+
+**Static longitudinal stability.** Neutral point h_n = h_ac + η_t V_H (a_t/a_w)(1 − dε/dα) + Δh_f with h_ac at the MAC quarter chord (§5), a_t from Helmbold on the tail aspect ratio, dε/dα ≈ 2 C_Lα/(π AR) (≤ 0.6), and the fuselage term Δh_f = −(K_f d_f² L_f/(c̄ S))/C_Lα,deg with K_f = 0.004 + 0.07 p² (p = wing-root quarter-chord position / fuselage length) — an approximate fit to the trend in Raymer Fig. 16.14. Static margin SM = (x_np − x_cg)/c̄; with no CG entered the suggested CG gives SM = 10 %. Tailless layouts use V_H = 0 and need a reflexed aerofoil.
+
+**Checks.** AE-SM-001 (CG behind NP, error), AE-SM-002 (SM < 5 %), AE-SM-003 (SM > 30 %, info), AE-FW-001 (tailless with c_m0 < −0.02), AE-RE-001 (Re < 10⁵, info), AE-STALL-001 (cruise < 1.05 V_s, error), AE-STALL-002 (cruise < 1.3 V_s), AE-SPD-001 (cruise > 2 V_md, info).
+
+**Tests.** `tests/engineering/aerodynamics.test.mjs`.
+
+## 10. Preliminary structures — `js/engineering/structures.js` (Build 5)
+
+Hand-calculation level: straight round tubes, Euler–Bernoulli beams, typical material values. Not FEA, joint design or a structural substantiation.
+
+**Materials** (illustrative, rounded room-temperature values): roll-wrapped CFRP tube E = 70 GPa, σ_allow = 500 MPa, ρ = 1550 kg/m³; Al 6061-T6 69 GPa / 276 MPa (yield) / 2700; GFRP 25 GPa / 300 MPa / 1900; Sitka spruce 10 GPa / 38 MPa / 450; printed PLA 3 GPa / 40 MPa / 1240.
+
+**Loads.** Limit load factor n (default 3.8; the balloon-release pull-out load factor from §8 is used when higher); ultimate = limit × safety factor (default 1.5).
+
+**Wing spar** (one round tube carries the bending): M_root = n W b/(3π) (elliptical lift); σ = SF M (D/2)/I, I = π(D⁴ − d⁴)/64; MS = σ_allow/σ − 1; tip deflection at limit load from a uniform load on each half, δ = w L⁴/(8EI), w = nW/b, L = b/2 (conservative for elliptical loading); the tube must fit within 0.9 (t/c) c_root.
+
+**Arms and VTOL booms** (cantilever, full-throttle thrust T_max from §7 at the tip): σ = SF T_max L (D/2)/I; δ = T L³/(3EI); first bending frequency (Rayleigh, tip mass = motor + propeller) f₁ = (1/2π)√(3EI/(L³(m_tip + 0.24 m_arm))). Excitations: 1P = hover rotor speed (rev/s), 2P = blade passing (two blades). Resonance = within ±15 %. Arm length: multirotor, rotor radius minus half the body diameter; VTOL, distance from the rotor to the wing aerodynamic centre.
+
+**Auto-sizing.** When no tube is entered, the smallest of the common tube sizes (3 × 2 mm to 50 × 46 mm) is chosen that gives MS ≥ 0 and δ ≤ 10 % of the semi-span (spar, fitting in the wing) or MS ≥ 0, δ ≤ 2 % L, f₁ ≥ 1.15 × 1P and no 2P resonance (arms).
+
+**Checks.** ST-SPAR-001 (overstressed / no tube fits), ST-SPAR-002 (deflection > 10 %), ST-SPAR-003 (tube deeper than the wing), ST-ARM-001 (overstressed), ST-ARM-002 (1P/2P resonance), ST-ARM-003 (f₁ < 1P, info), ST-MASS-001 (tubes heavier than the structure-mass estimate in §7).
+
+**Tests.** `tests/engineering/structures.test.mjs`.
+
+## 11. Formula engine and Formula Library — `js/engineering/expression.js`, `formulas.js`, `custom-formulas.js` (Build 5)
+
+**Safe expression engine.** User formulas are tokenised and parsed by a small recursive-descent parser into a syntax tree and evaluated by walking it; nothing is passed to `eval` or `Function` (the Content-Security-Policy forbids both). Grammar: numbers (optionally with a unit, `1.225[kg/m³]`), identifiers, `+ − * / ^` (right-associative power), parentheses, unary minus, functions `sqrt abs exp ln log10 sin cos tan asin acos atan atan2 min max`, constants `pi`, `g0`. Expressions are limited to 500 characters and 60 nesting levels.
+
+**Dimensional analysis.** Every value carries an exponent vector over (m, kg, s, A, K). Addition, subtraction, min/max require equal dimensions; ×, ÷ add/subtract exponents; powers need a dimensionless, constant exponent for dimensioned bases; transcendental functions need dimensionless arguments (angles in radians); √ halves the exponents. The result must match the declared SI unit (`UNIT_DIMENSIONS`), otherwise the engine reports the dimensions it found and the units that would fit.
+
+**Built-in registry** (`BUILTIN_FORMULAS`): each equation the models use, with its variables and SI units, the same equation in engine syntax (`calc`), the model file and function, the test, this document's section and a reference. `tests/engineering/formulas.test.mjs` fails if any `calc` does not parse, its units do not match, its inputs differ from its variables, its function is missing from the named file, or the named test/doc section does not exist; it also checks some calculators against the model code.
+
+**Your formulas** (`modules.formulas.items`): name, symbol, expression, result unit, description, optional limit (≤ or ≥, severity). Variables: mission targets (requirement keys), layout parameters, every numeric design result (derived id with `-` → `_`, for example `ae_cd0`, `pr_mass`), and other formulas by symbol. Formulas are evaluated in dependency order; cycles are reported. Results appear in the design review (id `cf-<symbol>`) and the summary; broken limits are review checks `CF-<symbol>`. The procedure for adding, changing or deleting built-in formulas is in [formulas.md](formulas.md).
+
+## 12. Planned models (not implemented)
+
+CG and inertia from component positions (Build 6), propeller performance at forward speed (Build 6), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.

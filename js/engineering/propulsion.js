@@ -165,7 +165,7 @@ const q = (symbol, label, value, unit, displayUnit) => ({ symbol, label, value, 
  * Analyse propulsion and energy.
  * @param {{ propulsion, configuration, geometry, requirements, components, electrical }} input
  */
-export function analysePropulsion({ propulsion, geometry, requirements = {}, components, electrical }) {
+export function analysePropulsion({ propulsion, geometry, requirements = {}, components, electrical, aero = null }) {
   const checks = [];
   const derived = [];
   const notes = [];
@@ -184,6 +184,8 @@ export function analysePropulsion({ propulsion, geometry, requirements = {}, com
   const liftRotors = geometry.rotors.filter((r) => r.role === 'lift');
   const cruiseRotors = geometry.rotors.filter((r) => r.role === 'cruise');
   const motorCount = geometry.rotors.length;
+  result.motorMass = m.mass + p.mass;
+  result.structureMass = s.structureMass;
 
   // ---- Mass budget -------------------------------------------------------------------------
   const componentMass = items.reduce((sum, i) => sum + (i.specs.mass ?? 0) * (i.quantity ?? 1), 0);
@@ -292,13 +294,23 @@ export function analysePropulsion({ propulsion, geometry, requirements = {}, com
   let cruisePower = null;
   if (cruiseRotors.length) {
     const V = requirements.cruiseSpeed?.value ?? 18;
-    const thrust = weight / s.cruiseLD;
+    let ld = s.cruiseLD;
+    let ldFromAero = false;
+    if (aero?.S > 0) {
+      const cl = (2 * weight) / (rho * V * V * aero.S);
+      const value = cl / (aero.cd0 + aero.k * cl * cl);
+      if (Number.isFinite(value) && value > 0) {
+        ld = value;
+        ldFromAero = true;
+      }
+    }
+    const thrust = weight / ld;
     const shaft = (thrust * V) / s.cruisePropEfficiency;
     cruisePower = shaft / (s.cruiseMotorEfficiency * s.escEfficiency) + avionicsPower;
     const max = maxStaticThrust({ voltage: pack.ocv(1 - s.usableFraction) * s.escEfficiency, diameter: cruiseRotors[0].diameter, ...motorArgs });
-    result.cruise = { speed: V, thrust, shaftPower: shaft, totalPower: cruisePower, staticThrust: max.thrust };
+    result.cruise = { speed: V, thrust, shaftPower: shaft, totalPower: cruisePower, staticThrust: max.thrust, liftToDrag: ld, ldFromAero };
     derived.push(
-      { id: 'pr-c-thrust', label: 'Cruise thrust (estimate)', symbol: 'T_c', value: thrust, unit: 'N', equation: 'T = W / (L/D)', inputs: [q('W', 'Weight', weight, 'N'), q('L/D', 'Lift-to-drag (estimate)', s.cruiseLD, '1')], provenance: 'conceptual-estimate', assumptions: ['Steady level flight; L/D is your estimate until the aerodynamic model of Build 5.'] },
+      { id: 'pr-c-thrust', label: 'Cruise thrust (estimate)', symbol: 'T_c', value: thrust, unit: 'N', equation: 'T = W / (L/D)', inputs: [q('W', 'Weight', weight, 'N'), q('L/D', ldFromAero ? 'Lift-to-drag (Aerodynamics page)' : 'Lift-to-drag (your estimate)', ld, '1')], provenance: 'conceptual-estimate', assumptions: [ldFromAero ? 'Steady level flight; L/D from the drag polar on the Aerodynamics page at this mass, speed and altitude.' : 'Steady level flight; L/D is your estimate (this layout has no wing model).'] },
       { id: 'pr-c-power', label: 'Electrical power in cruise', symbol: 'P_cruise', value: cruisePower, unit: 'W', equation: 'P = T V / (η_prop η_mot η_ESC) + P_avionics', inputs: [q('V', 'Cruise speed', V, 'm/s'), q('η_prop', 'Propeller efficiency', s.cruisePropEfficiency, '1', '%'), q('η_mot', 'Motor efficiency', s.cruiseMotorEfficiency, '1', '%')], provenance: 'conceptual-estimate' },
       { id: 'pr-c-static', label: 'Static thrust of the cruise propeller (take-off)', symbol: 'T_0', value: max.thrust, unit: 'N', equation: 'Full throttle, static coefficients', inputs: [], provenance: 'analytical' },
     );

@@ -16,6 +16,9 @@ import { emptyComponents, sanitizeComponents, validateComponents } from './engin
 import { DEFAULT_SETTINGS, sanitizePropulsion, validatePropulsion } from './engineering/propulsion.js';
 import { defaultPropulsion } from './engineering/catalogue.js';
 import { defaultSounding, sanitizeSounding, validateSounding } from './engineering/sounding.js';
+import { defaultAerodynamics, sanitizeAerodynamics, validateAerodynamics } from './engineering/aerodynamics.js';
+import { defaultStructures, sanitizeStructures, validateStructures } from './engineering/structures.js';
+import { emptyFormulas, sanitizeFormulas, validateFormulas } from './engineering/custom-formulas.js';
 
 /** Starting propulsion data for a configuration: closest illustrative motor/propeller, size-scaled structure estimate. */
 export function defaultPropulsionFor(configuration) {
@@ -25,8 +28,8 @@ export function defaultPropulsionFor(configuration) {
   return defaultPropulsion(configuration, { ...DEFAULT_SETTINGS, structureMass });
 }
 
-/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (modules.configuration); 3 = Build 3 (modules.components); 4 = Build 4 (modules.propulsion); 5 = balloon glide-sonde mission (modules.sounding). */
-export const PROJECT_SCHEMA_VERSION = 5;
+/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (modules.configuration); 3 = Build 3 (modules.components); 4 = Build 4 (modules.propulsion); 5 = balloon glide-sonde mission (modules.sounding); 6 = Build 5 (modules.aerodynamics, modules.structures, modules.formulas). */
+export const PROJECT_SCHEMA_VERSION = 6;
 
 export const PROJECT_CATEGORIES = Object.freeze([
   {
@@ -169,7 +172,7 @@ export function createProject(init = {}, { now = new Date(), id } = {}) {
     notes: [],
     modules: (() => {
       const configuration = defaultConfiguration(category);
-      return { configuration, components: emptyComponents(), propulsion: defaultPropulsionFor(configuration), sounding: { ...defaultSounding(), enabled: false } };
+      return { configuration, components: emptyComponents(), propulsion: defaultPropulsionFor(configuration), sounding: { ...defaultSounding(), enabled: false }, aerodynamics: defaultAerodynamics(configuration), structures: defaultStructures(), formulas: emptyFormulas() };
     })(),
     createdAt: iso,
     updatedAt: iso,
@@ -256,6 +259,9 @@ export function validateProject(doc) {
     for (const item of validateSounding(doc.modules.sounding)) {
       error(item.path ? `modules.sounding.${item.path}` : 'modules.sounding', item.message);
     }
+    for (const message of validateAerodynamics(doc.modules.aerodynamics)) error('modules.aerodynamics', message);
+    for (const message of validateStructures(doc.modules.structures)) error('modules.structures', message);
+    for (const message of validateFormulas(doc.modules.formulas)) error('modules.formulas', message);
   }
   if (!isIsoDate(doc.createdAt)) error('createdAt', 'Invalid creation date');
   if (!isIsoDate(doc.updatedAt)) error('updatedAt', 'Invalid modification date');
@@ -334,6 +340,11 @@ export function sanitizeProject(input, { now = new Date() } = {}) {
   const sounding = sanitizeSounding(base.modules.sounding);
   base.modules.sounding = { ...sounding.sounding, enabled: base.modules.sounding?.enabled === true };
   warnings.push(...sounding.warnings);
+  base.modules.aerodynamics = sanitizeAerodynamics(base.modules.aerodynamics, base.modules.configuration);
+  base.modules.structures = sanitizeStructures(base.modules.structures);
+  const formulas = sanitizeFormulas(base.modules.formulas);
+  base.modules.formulas = formulas.formulas;
+  warnings.push(...formulas.warnings);
   if (isIsoDate(source.createdAt)) base.createdAt = source.createdAt;
   if (isIsoDate(source.updatedAt)) base.updatedAt = source.updatedAt;
   base.deletedAt = null;
@@ -370,6 +381,19 @@ export const MIGRATIONS = Object.freeze({
     const modules = isPlainObject(doc.modules) ? doc.modules : {};
     const { sounding } = sanitizeSounding(modules.sounding);
     return { ...doc, modules: { ...modules, sounding: { ...sounding, enabled: modules.sounding?.enabled === true } } };
+  },
+  /** 5 → 6: add aerodynamics (aerofoil preset for the layout), structures and an empty formula list. */
+  5: (doc) => {
+    const modules = isPlainObject(doc.modules) ? doc.modules : {};
+    return {
+      ...doc,
+      modules: {
+        ...modules,
+        aerodynamics: sanitizeAerodynamics(modules.aerodynamics, modules.configuration),
+        structures: sanitizeStructures(modules.structures),
+        formulas: sanitizeFormulas(modules.formulas).formulas,
+      },
+    };
   },
 });
 

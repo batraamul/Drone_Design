@@ -11,6 +11,7 @@ const mAh = 3.6; // coulombs per mAh
 
 export const CATALOGUE = Object.freeze([
   // ---- Power --------------------------------------------------------------------------
+  { catalogueId: 'ill-bat-2s-450', type: 'battery', name: 'Example 2S 450 mAh LiPo', summary: 'Micro quadcopter pack.', specs: { chemistry: 'lipo', cells: 2, capacity: 450 * mAh, maxContinuousCurrent: 36, mass: 0.026 } },
   { catalogueId: 'ill-bat-3s-2200', type: 'battery', name: 'Example 3S 2200 mAh LiPo', summary: 'Small fixed-wing or 5-inch class pack.', specs: { chemistry: 'lipo', cells: 3, capacity: 2200 * mAh, maxContinuousCurrent: 55, mass: 0.19 } },
   { catalogueId: 'ill-bat-4s-5000', type: 'battery', name: 'Example 4S 5000 mAh LiPo', summary: 'Typical pack for a 450–650 mm quadcopter.', specs: { chemistry: 'lipo', cells: 4, capacity: 5000 * mAh, maxContinuousCurrent: 100, mass: 0.55 } },
   { catalogueId: 'ill-bat-6s-10000', type: 'battery', name: 'Example 6S 10 000 mAh Li-ion', summary: 'High-energy pack for long-endurance hexacopters and VTOL.', specs: { chemistry: 'liion', cells: 6, capacity: 10000 * mAh, maxContinuousCurrent: 40, mass: 1.2 } },
@@ -23,7 +24,10 @@ export const CATALOGUE = Object.freeze([
   { catalogueId: 'ill-fc-f4', type: 'flight-controller', name: 'Example F4-class flight controller with BEC', summary: 'Compact controller that runs directly from a 2–6S battery and has an on-board 5 V regulator.', specs: { supplyVoltageMin: 7, supplyVoltageMax: 26, supplyCurrent: 0.15, logicLevel: 3.3, tolerant5V: false, outputVoltage: 5, maxOutputCurrent: 2, mass: 0.008 }, interfaces: { uart: 5, i2c: 1, spi: 0, can: 0, pwm: 8, usb: 1, ethernet: 0 } },
   { catalogueId: 'ill-cc-arm', type: 'companion', name: 'Example quad-core ARM companion computer', summary: 'On-board computer for vision, logging and mission logic, connected to the autopilot by UART or Ethernet.', specs: { supplyVoltageMin: 4.75, supplyVoltageMax: 5.25, supplyCurrent: 3, logicLevel: 3.3, tolerant5V: false, mass: 0.05 }, interfaces: { uart: 2, i2c: 1, spi: 1, usb: 4, ethernet: 1, can: 0 } },
 
+  { catalogueId: 'ill-fc-aio-micro', type: 'flight-controller', name: 'Example AIO micro flight controller (1–2S)', summary: 'Tiny all-in-one controller for micro quadcopters, powered directly from a 1–2S pack, with a small 5 V output.', specs: { supplyVoltageMin: 3.3, supplyVoltageMax: 8.7, supplyCurrent: 0.12, logicLevel: 3.3, tolerant5V: false, outputVoltage: 5, maxOutputCurrent: 0.5, mass: 0.004 }, interfaces: { uart: 2, i2c: 0, spi: 0, can: 0, pwm: 4, usb: 1, ethernet: 0 } },
+
   // ---- Propulsion electronics -----------------------------------------------------------
+  { catalogueId: 'ill-esc-5a-micro', type: 'esc', name: 'Example 5 A micro ESC (1–2S)', summary: 'Micro ESC for 1104-class motors.', specs: { supplyVoltageMin: 3, supplyVoltageMax: 8.7, maxContinuousCurrent: 5, loadCurrent: null, logicLevel: 3.3, tolerant5V: true, mass: 0.002 }, interfaces: { pwm: 1, uart: 0, can: 0 } },
   { catalogueId: 'ill-esc-40a', type: 'esc', name: 'Example 40 A ESC (2–6S)', summary: 'One ESC per motor; accepts PWM or DShot from the flight controller.', specs: { supplyVoltageMin: 7, supplyVoltageMax: 26, maxContinuousCurrent: 40, loadCurrent: null, logicLevel: 3.3, tolerant5V: true, mass: 0.03 }, interfaces: { pwm: 1, uart: 0, can: 0 } },
   { catalogueId: 'ill-esc-80a-can', type: 'esc', name: 'Example 80 A CAN ESC (6–14S)', summary: 'High-voltage ESC for heavy-lift multirotors, controllable over CAN.', specs: { supplyVoltageMin: 22, supplyVoltageMax: 60, maxContinuousCurrent: 80, loadCurrent: null, logicLevel: 3.3, tolerant5V: true, mass: 0.11 }, interfaces: { pwm: 1, uart: 0, can: 1 } },
 
@@ -47,36 +51,64 @@ const MAP = new Map(CATALOGUE.map((e) => [e.catalogueId, e]));
 export const catalogueEntry = (id) => MAP.get(id) ?? null;
 
 /**
- * A coherent example avionics set for a quadcopter (4S), used by "Add example set".
+ * Coherent example avionics sets, matched to the kind of aircraft.
+ *   quad  — 4S, 450–550 mm quadcopter     hexa — 6S heavy-lift hexacopter
+ *   micro — 2S micro quadcopter           fixed-wing — 4S electric fixed wing
+ *   vtol  — 6S quadplane (4 lift + 1 cruise ESC)
  * Returns { items, connections } built with the given factories so ids are fresh.
  */
-export function exampleQuadSet({ createComponent, createConnection }) {
+export function exampleSet(kind, { createComponent, createConnection }, { motors, battery: batteryId } = {}) {
   const c = (id, extra = {}) => createComponent({ catalogueEntry: MAP.get(id), ...extra });
-  const battery = c('ill-bat-4s-5000');
+  const link = (k, from, to) => createConnection({ kind: k, from: from.id, to: to.id });
+  if (kind === 'micro') {
+    const battery = c('ill-bat-2s-450');
+    const fc = c('ill-fc-aio-micro');
+    const escs = c('ill-esc-5a-micro', { quantity: 4 });
+    const rx = c('ill-rx-serial');
+    return { items: [battery, fc, escs, rx], connections: [link('power', battery, fc), link('power', battery, escs), link('power', fc, rx), link('pwm', fc, escs), link('uart', fc, rx)] };
+  }
+  const six = kind === 'hexa' || kind === 'vtol';
+  const battery = c(batteryId ?? (six ? 'ill-bat-6s-10000' : 'ill-bat-4s-5000'));
   const pm = c('ill-pm-5v-3a');
   const fc = c('ill-fc-h7');
-  const escs = c('ill-esc-40a', { quantity: 4 });
+  const escCount = motors ?? { quad: 4, hexa: 6, 'fixed-wing': 1, vtol: 5 }[kind] ?? 4;
+  const escs = c('ill-esc-40a', { quantity: escCount });
   const rx = c('ill-rx-serial');
   const gnss = c('ill-gnss-compass');
   const tel = c('ill-tel-sub1ghz');
-  const link = (kind, from, to) => createConnection({ kind, from: from.id, to: to.id });
-  return {
-    items: [battery, pm, fc, escs, rx, gnss, tel],
-    connections: [
-      link('power', battery, pm),
-      link('power', pm, fc),
-      link('power', battery, escs),
-      link('power', fc, rx),
-      link('power', fc, gnss),
-      link('power', fc, tel),
-      link('pwm', fc, escs),
-      link('uart', fc, rx),
-      link('uart', fc, gnss),
-      link('i2c', fc, gnss),
-      link('uart', fc, tel),
-    ],
-  };
+  const items = [battery, pm, fc, escs, rx, gnss, tel];
+  const connections = [
+    link('power', battery, pm),
+    link('power', pm, fc),
+    link('power', battery, escs),
+    link('power', fc, rx),
+    link('power', fc, gnss),
+    link('power', fc, tel),
+    link('pwm', fc, escs),
+    link('uart', fc, rx),
+    link('uart', fc, gnss),
+    link('i2c', fc, gnss),
+    link('uart', fc, tel),
+  ];
+  if (kind === 'fixed-wing' || kind === 'vtol') {
+    const airspeed = c('ill-airspeed-i2c');
+    items.push(airspeed);
+    connections.push(link('power', fc, airspeed), link('i2c', fc, airspeed));
+  }
+  return { items, connections };
 }
+
+/** Which example set suits a configuration layout. */
+export function exampleSetKind(layoutId, category) {
+  if (category === 'micro') return 'micro';
+  if (category === 'vtol') return 'vtol';
+  if (category === 'fixed-wing' || layoutId === 'solar-glider') return 'fixed-wing';
+  if (['hexa-x', 'hexa-plus', 'octo-x', 'octo-plus', 'y6', 'x8'].includes(layoutId)) return 'hexa';
+  return 'quad';
+}
+
+/** The original 4S quadcopter set (kept for compatibility). */
+export const exampleQuadSet = (factories) => exampleSet('quad', factories);
 
 // ---- Motors and propellers (Build 4) — ILLUSTRATIVE --------------------------------------
 // Typical classes with round numbers. For real designs use the motor datasheet and measured

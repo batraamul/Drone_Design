@@ -12,13 +12,40 @@ import { lineChart } from '../visualisation/plots.js';
 import { flowBar } from '../ui/design-flow.js';
 
 /** Inputs for analyseSounding() from the project's own design (mass, wing, battery). */
-export function soundingInputs(sounding, propulsion, geometry) {
-  const wing = geometry?.wing ? { area: (geometry.wing.span * (geometry.wing.rootChord + geometry.wing.tipChord)) / 2, span: geometry.wing.span, mac: geometry.wing.mac } : null;
+export function soundingInputs(sounding, propulsion, geometry, aeroModel = null) {
+  const wing = geometry?.wing ? { area: (geometry.wing.span * (geometry.wing.rootChord + geometry.wing.tipChord)) / 2, span: geometry.wing.span, mac: geometry.wing.mac, aero: aeroModel ?? null } : null;
   const battery = propulsion?.battery ? { energy: propulsion.battery.usableEnergy, avionicsPower: propulsion.avionicsPower ?? 0 } : null;
   return { sounding, designMass: propulsion?.mass?.total ?? null, designWing: wing, battery };
 }
 
 const path = (...keys) => ['modules', 'sounding', ...keys];
+
+/** "Suggest a balloon": the smallest example balloon that reaches release with ≥ 3 km burst margin. */
+function suggestButton(ctx) {
+  return button({
+    label: 'Suggest a balloon for this aircraft',
+    icon: 'balloon',
+    size: 'sm',
+    onClick: async () => {
+      const { suggestBalloon } = await import('../engineering/templates.js');
+      const s = ctx.store.doc.modules.sounding;
+      const r = ctx.engineering.sounding();
+      const mass = r?.mass ?? ctx.engineering.propulsion()?.mass?.total ?? s.params.payloadMass;
+      const pick = suggestBalloon(s.params, mass, s.gas);
+      if (!pick) {
+        ctx.notify({ level: 'warning', title: 'No example balloon is big enough', message: `None of the example balloons reaches ${(s.params.releaseAltitude / 1000).toFixed(0)} km with a 3 km burst margin for ${mass.toFixed(2)} kg. Lower the release altitude, reduce free lift or mass, or enter a larger balloon’s datasheet values.` });
+        return;
+      }
+      const b = pick.balloon;
+      ctx.store.transact(`Choose ${b.name}`, (set) => {
+        set(path('balloon'), { name: b.name, catalogueId: b.catalogueId, provenance: 'illustrative', source: '' });
+        set(path('params', 'balloonMass'), b.specs.mass);
+        set(path('params', 'burstDiameter'), b.specs.burstDiameter);
+      });
+      ctx.notify({ level: 'success', title: `${b.name} selected`, message: pick.ascent.burstAltitude === null ? 'It does not reach its burst diameter within the modelled atmosphere.' : `Predicted burst ${((pick.ascent.burstAltitude - s.params.launchElevation) / 1000).toFixed(1)} km above ground, ${((pick.ascent.burstAltitude - pick.ascent.releaseAltitudeAMSL) / 1000).toFixed(1)} km above release.` });
+    },
+  });
+}
 
 function paramRow(ctx, key, provenance = 'user-input') {
   const { store, prefs } = ctx;
@@ -212,7 +239,7 @@ export async function mount(container, ctx) {
     const gasSelect = selectControl({ id: gasId, options: Object.entries(GASES).map(([id, g]) => ({ value: id, label: g.label })), value: s.gas, onChange: (v) => store.set(path('gas'), v, { label: 'Choose lifting gas' }) });
     const balloonRows = ['launchElevation', 'releaseAltitude', 'balloonMass', 'burstDiameter', 'freeLift', 'trainMass', 'balloonCd'].map((k) => paramRow(ctx, k, k === 'balloonMass' || k === 'burstDiameter' ? s.balloon.provenance : k === 'balloonCd' ? 'conceptual-estimate' : 'user-input'));
     const geo = ctx.engineering.geometry();
-    const aircraftRows = [...(s.useDesignMass ? [] : ['payloadMass']), ...(s.useDesignWing && geo?.wing ? [] : ['wingArea', 'wingSpan']), 'cd0', 'oswald', 'clMax', 'maxLoadFactor'].map((k) => paramRow(ctx, k, ['cd0', 'oswald', 'clMax'].includes(k) ? 'conceptual-estimate' : 'user-input'));
+    const aircraftRows = [...(s.useDesignMass ? [] : ['payloadMass']), ...(s.useDesignWing && geo?.wing ? [] : ['wingArea', 'wingSpan']), ...(s.useDesignWing && geo?.wing ? [] : ['cd0', 'oswald', 'clMax']), 'maxLoadFactor'].map((k) => paramRow(ctx, k, ['cd0', 'oswald', 'clMax'].includes(k) ? 'conceptual-estimate' : 'user-input'));
     const sondeRows = ['sampleInterval', 'hybridAltitude', 'poweredLD', 'poweredEfficiency'].map((k) => paramRow(ctx, k, k === 'poweredLD' || k === 'poweredEfficiency' ? 'conceptual-estimate' : 'user-input'));
     rows = [...balloonRows, ...aircraftRows, ...sondeRows];
     results = h('div', { class: 'page-grid span-2 results-grid' });
@@ -224,7 +251,7 @@ export async function mount(container, ctx) {
       h(
         'div',
         { class: 'page-grid sounding-grid' },
-        card({ title: '1. Balloon and ascent', icon: 'balloon', body: h('div', { class: 'stack' }, h('div', { class: 'requirement-list' }, field({ id: balloonId, label: 'Balloon', control: balloonSelect, hint: 'Example balloons are illustrative; use your balloon’s datasheet (mass and burst diameter).' }), field({ id: gasId, label: 'Lifting gas', control: gasSelect })), h('div', { class: 'requirement-list' }, balloonRows.map((r) => r.element))) }),
+        card({ title: '1. Balloon and ascent', icon: 'balloon', body: h('div', { class: 'stack' }, h('div', { class: 'requirement-list' }, field({ id: balloonId, label: 'Balloon', control: balloonSelect, hint: 'Example balloons are illustrative; use your balloon’s datasheet (mass and burst diameter).' }), field({ id: gasId, label: 'Lifting gas', control: gasSelect })), suggestButton(ctx), h('div', { class: 'requirement-list' }, balloonRows.map((r) => r.element))) }),
         card({
           title: '2–3. Aircraft: release, pull-out and glide',
           icon: 'fixedWing',

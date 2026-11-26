@@ -12,6 +12,8 @@ import { wingPlanform } from '../../engineering/geometry.js';
 import { rotorOperatingPoint } from '../../engineering/propulsion.js';
 import { balloonAscent, defaultSounding } from '../../engineering/sounding.js';
 import { G0 } from '../../engineering/atmosphere.js';
+import { liftingLine } from '../../engineering/aerodynamics.js';
+import { tubeSection, armCheck, MATERIALS } from '../../engineering/structures.js';
 
 const n = (value, digits = 5) => formatNumber(value, { digits });
 
@@ -485,6 +487,100 @@ function balloonCalculator() {
   );
 }
 
+
+// ---- Drag polar and stall ---------------------------------------------------------------------
+
+function polarCalculator() {
+  const state = { mass: '3', span: '2', root: '0.3', taper: '0.6', cd0: '0.025', clmax: '1.2', speed: '18', altitude: '300' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('pc')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.mass.value <= 0 || v.span.value <= 0 || v.root.value <= 0 || v.taper.value <= 0 || v.taper.value > 1 || v.cd0.value <= 0 || v.clmax.value <= 0 || v.speed.value <= 0 || v.altitude.value < MIN_ALTITUDE || v.altitude.value > 20000) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter positive values, a taper ratio between 0 and 1, and an altitude between −5 000 and 20 000 m.'));
+      return;
+    }
+    const b = v.span.value;
+    const cr = v.root.value;
+    const lam = v.taper.value;
+    const S = (b * cr * (1 + lam)) / 2;
+    const AR = (b * b) / S;
+    const ll = liftingLine({ span: b, rootChord: cr, taperRatio: lam, a0: 6 });
+    const e = 1 / (1 / ll.e + 0.38 * v.cd0.value * Math.PI * AR);
+    const k = 1 / (Math.PI * AR * e);
+    const rho = isa(v.altitude.value).density;
+    const W = v.mass.value * G0;
+    const cl = (2 * W) / (rho * v.speed.value ** 2 * S);
+    const ld = cl / (v.cd0.value + k * cl * cl);
+    const vs = Math.sqrt((2 * W) / (rho * S * v.clmax.value));
+    const clStar = Math.sqrt(v.cd0.value / k);
+    const vmd = Math.sqrt((2 * W) / (rho * S * clStar));
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Wing area / aspect ratio', `${n(S, 3)} m² / ${n(AR, 3)}`, 'S = b c_r (1+λ)/2'],
+          ['Span efficiency (lifting line)', n(ll.e, 3), 'e = 1/(1+δ)'],
+          ['Oswald factor', n(e, 3), '1/e = 1/e_LL + 0.38 C_D0 π AR'],
+          ['Best L/D', n(0.5 * Math.sqrt(1 / (v.cd0.value * k)), 3), '½ √(π AR e / C_D0)'],
+          ['Cruise C_L and L/D', `${n(cl, 3)} and ${n(ld, 3)}`, 'C_L = 2W/(ρV²S)'],
+          ['Stall speed', `${n(vs, 3)} m/s`, cl > 0.8 * v.clmax.value ? provenanceBadge('conceptual-estimate') : 'V_s = √(2W/(ρ S C_Lmax))'],
+          ['Best-glide / best-endurance speed', `${n(vmd, 3)} / ${n(vmd / 3 ** 0.25, 3)} m/s`, 'V_md, V_mp = V_md/3^¼'],
+        ],
+        'Drag polar and speeds',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('mass', 'Mass', 'kg'), make('span', 'Span', 'm'), make('root', 'Root chord', 'm'), make('taper', 'Taper ratio', ''), make('cd0', 'C_D0', ''), make('clmax', 'Wing C_Lmax', ''), make('speed', 'Cruise speed', 'm/s'), make('altitude', 'Altitude (ISA)', 'm')),
+    output,
+    h('p', { class: 'calc__note' }, 'Untwisted straight-tapered wing, section slope 6 per rad. Conceptual estimate.'),
+  );
+}
+
+// ---- Tube beam (arm or spar) ---------------------------------------------------------------------
+
+function beamCalculator() {
+  const state = { thrust: '15', length: '200', outer: '12', wall: '1', tip: '80', rpm: '6000' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('bc')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.thrust.value <= 0 || v.length.value <= 0 || v.outer.value <= 0 || v.wall.value <= 0 || 2 * v.wall.value >= v.outer.value || v.tip.value < 0 || v.rpm.value <= 0) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter positive values; the wall must be thinner than half the diameter.'));
+      return;
+    }
+    const mat = MATERIALS[0];
+    const c = armCheck({ thrust: v.thrust.value, length: v.length.value / 1000, tipMass: v.tip.value / 1000, safetyFactor: 1.5, material: mat, outer: v.outer.value / 1000, wall: v.wall.value / 1000, rotorHz: v.rpm.value / 60 });
+    const sec = tubeSection(v.outer.value / 1000, v.wall.value / 1000);
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Second moment of area', `${n(sec.I * 1e12, 4)} mm⁴`, 'I = π(D⁴ − d⁴)/64'],
+          ['Bending stress (×1.5)', `${n(c.stress / 1e6, 3)} MPa`, `allowable ${n(mat.strength / 1e6, 3)} MPa`],
+          ['Margin of safety', `${n(c.margin * 100, 3)} %`, c.margin < 0 ? 'FAILS — use a bigger tube' : 'σ_allow/σ − 1'],
+          ['Tip deflection', `${n(c.deflection * 1000, 3)} mm`, 'δ = F L³/(3EI)'],
+          ['First bending frequency', `${n(c.frequency, 3)} Hz`, c.resonance ? `near ${c.resonance}!` : `1P = ${n(v.rpm.value / 60, 3)} Hz`],
+          ['Tube mass', `${n(c.mass * 1000, 3)} g`, 'ρ A L'],
+        ],
+        'Carbon tube cantilever (typical properties)',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('thrust', 'Tip load (max thrust)', 'N'), make('length', 'Length', 'mm'), make('outer', 'Outer diameter', 'mm'), make('wall', 'Wall thickness', 'mm'), make('tip', 'Tip mass (motor + prop)', 'g'), make('rpm', 'Rotor speed in hover', 'rpm')),
+    output,
+    h('p', { class: 'calc__note' }, 'Carbon tube, E = 70 GPa, allowable 500 MPa (typical values). Safety factor 1.5.'),
+  );
+}
+
 export const WIDGETS = Object.freeze({
   uncertainty: uncertaintyCalculator,
   units: unitConverter,
@@ -494,4 +590,6 @@ export const WIDGETS = Object.freeze({
   regulator: regulatorCalculator,
   motor: motorCalculator,
   balloon: balloonCalculator,
+  polar: polarCalculator,
+  beam: beamCalculator,
 });

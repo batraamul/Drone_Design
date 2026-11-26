@@ -2,6 +2,53 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] — 2026-11-26 — Build 5: Aerodynamics, structures, Formula Library
+
+### Added
+
+- **Aerodynamics** (fixed wing and VTOL):
+  - aerofoil presets (Clark Y, NACA 2412/0012, SD7037, E387, MH 45; typical values) or your own data with provenance and source;
+  - lifting-line (Glauert) span efficiency and lift slope with a DATCOM sweep correction;
+  - a component drag build-up (skin friction, form factors, wetted areas) shown part by part;
+  - the drag polar, cruise L/D, stall speed, best-glide and best-endurance speeds and a power-required curve;
+  - neutral point, static margin and a suggested centre of gravity, drawn on a nose-to-tail balance strip.
+
+  Eight new checks. Cruise power in Propulsion & Energy now uses the L/D from this polar, and the balloon glide uses its drag recomputed at the local Reynolds number.
+- **Structural Analysis:**
+  - wing spar and multirotor arm / VTOL boom tubes, auto-sized from common tube sizes or entered by you;
+  - bending stress with a safety factor and margin of safety, deflection, and the arm's first bending frequency against the rotor 1P/2P excitations;
+  - typical material records;
+  - the balloon-release pull-out load used when it is the larger load.
+
+  Seven new checks.
+- **Formula Library:**
+  - all 40 built-in formulas, each with a calculator and links to its code, test, documentation section and reference;
+  - **your own formulas** per project: add, change and delete them, use any target, layout dimension or design result, and set optional pass/fail limits;
+  - a safe expression engine (no eval) with unit checking: numbers can carry units, e.g. `1.225[kg/m³]`.
+
+  Results appear in the design review and the Summary. The procedure for changing formulas is in `docs/formulas.md`.
+- **Start from an example:** six complete working designs:
+  - survey quadcopter;
+  - heavy-lift hexacopter;
+  - mapping fixed wing;
+  - VTOL quadplane;
+  - micro quadcopter;
+  - balloon-launched glide-sonde.
+- **Suggest a balloon** on the sounding page: the smallest example balloon with at least 3 km burst margin.
+- Dashboard **welcome** screen and **Design health** card (flow progress ring, problems, warnings and headline numbers).
+- Lessons "Wing aerodynamics, drag and balance" and "Sizing spars and arms", with drag-polar and tube-beam calculators.
+- Project schema **v6** (`modules.aerodynamics`, `modules.structures`, `modules.formulas`), with an automatic migration.
+
+### Changed
+
+- The design flow has nine steps (Aerodynamics and Structures after Propulsion & energy); a step that does not apply to the layout says so.
+- "Add example quadcopter set" became **Add example parts set**: it now matches the layout. Micro designs get a 2S set; fixed wings get one ESC and an airspeed sensor; hexacopters and VTOL get 6S.
+- Visual refresh: page and card icons, result tiles with accent bars, and calmer layouts on the new pages.
+
+### Fixed
+
+- Pages with the design-flow bar no longer scroll sideways on phones. The mobile test now measures at the real screen width, after each page has rendered.
+
 ## [0.5.0] — 2026-11-23 — Build 4: Propulsion and energy, design flow, balloon glide-sonde
 
 ### Added

@@ -52,6 +52,18 @@ export const MODULES = Object.freeze([
     dataShared: [],
   },
   {
+    id: 'formulas',
+    title: 'Formula Library',
+    icon: 'book',
+    group: 'overview',
+    status: 'available',
+    builds: [5],
+    summary: 'Every built-in equation with its code, test and reference, a calculator for each, and your own unit-checked formulas.',
+    scope: ['Built-in formula registry with try-it calculators', 'Add, change and delete your own formulas per project', 'Unit (dimension) checking and optional pass/fail limits in the design review'],
+    dependsOn: [],
+    dataShared: ['formulas'],
+  },
+  {
     id: 'architecture',
     title: 'Drone Architecture',
     icon: 'multirotor',
@@ -155,7 +167,7 @@ export const MODULES = Object.freeze([
     title: 'Aerodynamics',
     icon: 'airfoil',
     group: 'labs',
-    status: 'planned',
+    status: 'partial',
     builds: [5],
     summary: 'Wing and airfoil design with preliminary analytical aerodynamic estimates.',
     scope: [
@@ -171,7 +183,7 @@ export const MODULES = Object.freeze([
     title: 'Structural Analysis',
     icon: 'truss',
     group: 'labs',
-    status: 'planned',
+    status: 'partial',
     builds: [5],
     summary: 'Materials and preliminary bending, shear, torsion, deflection and vibration estimates.',
     scope: [

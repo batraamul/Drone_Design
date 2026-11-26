@@ -26,7 +26,7 @@ test('example set: diagram, budget and checks; persists after reload', async ({ 
   const errors = collectErrors(page);
   await newProject(page, 'Avionics persist');
   await go(page, '#/avionics');
-  await page.getByRole('button', { name: 'Add example quadcopter set' }).click();
+  await page.getByRole('button', { name: 'Add example parts set' }).click();
   await expect(page.locator('svg.bd .bd__box')).toHaveCount(7);
   await expect(page.locator('svg.bd .bd__link')).toHaveCount(11);
   await expect(page.locator('.budget-table tbody tr')).toHaveCount(3);
@@ -60,7 +60,7 @@ test('adding parts and connections runs the checks; undo removes the problem', a
 test('editing a specification updates the budget', async ({ page }) => {
   await newProject(page, 'Avionics edit');
   await go(page, '#/avionics');
-  await page.getByRole('button', { name: 'Add example quadcopter set' }).click();
+  await page.getByRole('button', { name: 'Add example parts set' }).click();
   const before = await page.locator('.budget-table').innerText();
   const esc = page.locator('details.component', { hasText: 'Example 40 A ESC' });
   await esc.locator('summary').click();
