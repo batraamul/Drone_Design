@@ -1557,3 +1557,40 @@ line.view2d__rotor--cruise {
 .formula-editor { align-items: start; }
 .var-picker { align-content: start; align-self: stretch; }
 .var-picker .var-list { max-height: min(60vh, 520px); }
+
+/* ==== Build 6: Mass & Balance, Flight Dynamics ============================================ */
+.bal__views { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; }
+.bal__figure { margin: 0; display: grid; gap: 4px; }
+.bal__view { width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-1); touch-action: none; }
+.bal__dot { fill: none; stroke: var(--text-3); stroke-width: 1.5; }
+.bal__dot--movable { fill: color-mix(in srgb, var(--accent) 55%, transparent); stroke: var(--accent); cursor: grab; }
+.bal__dot--auto { fill: color-mix(in srgb, var(--accent) 25%, transparent); stroke-dasharray: 3 2; }
+.bal__dot--movable:focus-visible { outline: none; stroke: var(--text-1); stroke-width: 3; }
+.bal__dot--drag { cursor: grabbing; stroke: var(--text-1); stroke-width: 2.5; }
+.bal__cg circle { fill: var(--bg-1); stroke: var(--ok); stroke-width: 2.5; }
+.bal__cg path { stroke: var(--ok); stroke-width: 2; }
+.bal__cg text, .bal__ref text { font: 700 11px var(--font-mono); fill: var(--text-2); }
+.bal__cg text { fill: var(--ok); }
+.bal__ref path { stroke: var(--warn); stroke-width: 2.5; }
+.bal__in { width: 84px; }
+.bal__hint { margin: 0; font-size: var(--fs-sm); }
+.bal__table td { white-space: nowrap; }
+.modes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px; }
+.mode { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-1); }
+.mode__name { font-weight: 700; }
+.mode__values { font: 600 13px var(--font-mono); color: var(--text-2); }
+.mode__verdict { font-size: var(--fs-sm); }
+.mode--good { border-color: color-mix(in srgb, var(--ok) 60%, var(--line)); }
+.mode--good .mode__verdict { color: var(--ok); }
+.mode--warn { border-color: var(--warn); }
+.mode--warn .mode__verdict { color: var(--warn); }
+.mode--bad { border-color: var(--danger); background: var(--danger-soft); }
+.mode--bad .mode__verdict { color: var(--danger); }
+.root-plot { width: 100%; max-width: 420px; height: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-1); }
+.root-plot__axis { stroke: var(--line-strong); }
+.root-plot__stable { fill: color-mix(in srgb, var(--ok) 7%, transparent); }
+.root-plot__pt { stroke-width: 2.5; fill: none; }
+.root-plot__label { font: 600 10px var(--font-mono); fill: var(--text-2); }
+.chart__line--extra { stroke: var(--warn); opacity: 0.9; }
+.chart__line--dashed { stroke-dasharray: 5 4; }
+.chart__legend text { font: 600 10px var(--font-mono); fill: var(--text-3); }

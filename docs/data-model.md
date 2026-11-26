@@ -2,11 +2,11 @@
 
 All engineering quantities are stored in **SI units**. Every document carries a schema version so it can be migrated forward.
 
-## 1. Project document (schema version 6)
+## 1. Project document (schema version 7)
 
 | Field | Type | Description |
 |---|---|---|
-| `schemaVersion` | integer | Document schema version (currently 6; 1 = Build 1, 2 = Build 2, 3 = Build 3, 4 = Build 4, 5 = balloon mission, 6 = Build 5) |
+| `schemaVersion` | integer | Document schema version (currently 7; 1 = Build 1, 2 = Build 2, 3 = Build 3, 4 = Build 4, 5 = balloon mission, 6 = Build 5, 7 = Build 6) |
 | `id` | string `prj_…` | Stable project identifier |
 | `revision` | integer | Persistence revision; increments on every save; used for conflict detection |
 | `name` | string ≤ 120 | Project name |
@@ -88,6 +88,26 @@ The 5→6 migration picks an aerofoil preset for the layout: MH 45 for flying wi
 
 - `material` and `armMaterial` are ids from `MATERIALS`.
 - The four tube dimensions (m) are `null` when the tube is auto-sized.
+
+### Mass & balance (`modules.massProperties`, schema 7)
+
+`{ placements: { [componentId]: { x, y, z } }, payload: { x, y, z } | null }`
+
+- Positions are in metres in the body frame: x forward, nose at 0 for fixed wings; z up.
+- Parts without a placement use a default by type; on fixed wings an unplaced battery balances automatically.
+- Placements of deleted components are dropped on import.
+
+### Flight dynamics (`modules.dynamics`, schema 7)
+
+`{ settings: { motorTimeConstant: s | null, attitudeBandwidth: rad/s | null, gustSpeed: m/s, elevatorStep: rad } }`
+
+`null` means automatic (estimated from the propeller diameter, or a third of the motor bandwidth).
+
+### Propulsion additions (schema 7)
+
+- `propeller.table` (optional): `[{ J, ct, cp }]`, 3–60 rows with J increasing. This is measured forward-speed data.
+- `cruise` (optional): `{ motor, propeller }` for VTOL layouts with separate cruise rotors. It has the same shape as the main motor and propeller, and may have its own `table`.
+- The 6→7 migration adds a cruise set to existing quadplanes.
 
 ### Your formulas (`modules.formulas`, schema 6)
 

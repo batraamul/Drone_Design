@@ -36,7 +36,23 @@ function makeTransform(bounds) {
   const scale = Math.min((W - 2 * PAD) / du, (H - 2 * PAD - 14) / dv);
   const cu = (bounds.u[0] + bounds.u[1]) / 2;
   const cv = (bounds.v[0] + bounds.v[1]) / 2;
-  return { scale, map: ([u, v]) => [W / 2 + (u - cu) * scale, (H - 14) / 2 - (v - cv) * scale] };
+  return {
+    scale,
+    map: ([u, v]) => [W / 2 + (u - cu) * scale, (H - 14) / 2 - (v - cv) * scale],
+    unmap: ([px, py]) => [(px - W / 2) / scale + cu, -(py - (H - 14) / 2) / scale + cv],
+  };
+}
+
+/** Screen transform of a view: project a body point, and invert screen → view-plane coordinates. */
+export function viewTransform(geo, view, extra = []) {
+  const bounds = boundsFor(geo, view);
+  for (const p of extra) {
+    const [u, v] = PROJECT[view](p);
+    bounds.u = [Math.min(bounds.u[0], u), Math.max(bounds.u[1], u)];
+    bounds.v = [Math.min(bounds.v[0], v), Math.max(bounds.v[1], v)];
+  }
+  const t = makeTransform(bounds);
+  return { ...t, width: W, height: H, project: (p) => t.map(PROJECT[view](p)) };
 }
 
 const fmt = (n) => (Math.round(n * 10) / 10).toString();
@@ -230,9 +246,8 @@ function wingedParts(geo, view, map, scale) {
  * @param {object} geo result of computeGeometry()
  * @param {'top'|'front'|'side'} view
  */
-export function drawView(geo, view) {
-  const bounds = boundsFor(geo, view);
-  const { scale, map } = makeTransform(bounds);
+export function drawView(geo, view, { overlay = null, extra = [] } = {}) {
+  const { scale, map, project } = viewTransform(geo, view, extra);
   const parts = geo.family === 'multirotor' ? multirotorParts(geo, view, map, scale) : wingedParts(geo, view, map, scale);
   const length = geo.extents.x[1] - geo.extents.x[0];
   const width = geo.extents.y[1] - geo.extents.y[0];
@@ -242,6 +257,7 @@ export function drawView(geo, view) {
     { class: 'view2d', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': description, dataset: { view } },
     s('title', null, description),
     s('g', { class: 'view2d__drawing' }, parts),
+    overlay ? s('g', { class: 'view2d__overlay' }, overlay({ map, project, scale })) : null,
     scaleBar(scale),
   );
 }

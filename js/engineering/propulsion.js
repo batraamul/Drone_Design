@@ -105,6 +105,79 @@ export function rotorOperatingPoint({ thrust, rho, diameter, ct, cp, kv, resista
   return { n, rpm: n * 60, shaftPower, torque, current, voltage, electricalPower, efficiency: shaftPower / electricalPower, kt };
 }
 
+// ---- Propeller at forward speed (Build 6) ----------------------------------------------------
+
+export const PROP_TABLE_LIMIT = 60;
+
+/** Zero-thrust advance ratio estimate for the generic model: J₀ ≈ 1.15 P/D (small fixed-pitch props). */
+export const zeroThrustJ = (prop) => 1.15 * (prop.pitch / prop.diameter);
+
+function validTable(table) {
+  return Array.isArray(table) && table.length >= 3 && table.length <= PROP_TABLE_LIMIT && table.every((r, i) => isPlainObject(r) && [r.J, r.ct, r.cp].every((v) => typeof v === 'number' && Number.isFinite(v)) && r.J >= 0 && r.J <= 3 && r.ct > -0.5 && r.ct < 0.5 && r.cp > -0.5 && r.cp < 0.5 && (i === 0 || r.J > table[i - 1].J));
+}
+
+/** Parse pasted propeller data: one "J CT CP" row per line (UIUC format; header lines ignored). */
+export function parsePropTable(text) {
+  const rows = [];
+  for (const line of String(text ?? '').split(/\r?\n/)) {
+    const nums = line.trim().split(/[\s,;]+/).map(Number);
+    if (nums.length >= 3 && nums.slice(0, 3).every(Number.isFinite)) rows.push({ J: nums[0], ct: nums[1], cp: nums[2] });
+  }
+  rows.sort((a, b) => a.J - b.J);
+  const unique = rows.filter((r, i) => i === 0 || r.J > rows[i - 1].J);
+  return validTable(unique) ? unique : null;
+}
+
+/**
+ * Thrust and power coefficients at advance ratio J = V/(nD).
+ * With a measured table: linear interpolation (clamped to its range). Otherwise the generic
+ * model (conceptual estimate): x = J/J₀, C_T = C_T0 (1 − 0.6x − 0.4x²), C_P = C_P0 (1 − 0.85x²).
+ */
+export function propellerCoefficients(J, prop, table = null) {
+  if (validTable(table)) {
+    if (J <= table[0].J) return { ct: table[0].ct, cp: table[0].cp, source: 'table' };
+    for (let i = 1; i < table.length; i += 1) {
+      if (J <= table[i].J) {
+        const t = (J - table[i - 1].J) / (table[i].J - table[i - 1].J);
+        return { ct: table[i - 1].ct + t * (table[i].ct - table[i - 1].ct), cp: table[i - 1].cp + t * (table[i].cp - table[i - 1].cp), source: 'table' };
+      }
+    }
+    const last = table[table.length - 1];
+    return { ct: last.ct, cp: last.cp, source: 'table', outside: true };
+  }
+  const x = J / zeroThrustJ(prop);
+  return { ct: prop.ct * (1 - 0.6 * x - 0.4 * x * x), cp: prop.cp * (1 - 0.85 * x * x), source: 'generic' };
+}
+
+/**
+ * Operating point of one motor + propeller giving `thrust` at airspeed V.
+ * Solves C_T(J) ρ n² D⁴ = T for n (bisection), then the motor: Q = P/(2πn), I = Q/K_t + I₀,
+ * U = 60n/K_v + I R.
+ */
+export function cruiseOperatingPoint({ thrust, V, rho, diameter, prop, table = null, kv, resistance, noLoadCurrent }) {
+  const T = (n) => propellerCoefficients(V / (n * diameter), prop, table).ct * rho * n * n * diameter ** 4;
+  let hi = 50;
+  while (T(hi) < thrust && hi < 2e4) hi *= 2;
+  if (T(hi) < thrust) return null;
+  let lo = hi / 2;
+  while (T(lo) > thrust && lo > 0.5) lo /= 2;
+  for (let i = 0; i < 80; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (T(mid) > thrust) hi = mid;
+    else lo = mid;
+  }
+  const n = hi;
+  const J = V / (n * diameter);
+  const c = propellerCoefficients(J, prop, table);
+  const shaftPower = c.cp * rho * n ** 3 * diameter ** 5;
+  const torque = shaftPower / (2 * Math.PI * n);
+  const kt = 60 / (2 * Math.PI * kv);
+  const current = torque / kt + noLoadCurrent;
+  const voltage = (60 * n) / kv + current * resistance;
+  const electricalPower = voltage * current;
+  return { n, rpm: 60 * n, J, ct: c.ct, cp: c.cp, source: c.source, outside: Boolean(c.outside), shaftPower, propEfficiency: (thrust * V) / shaftPower, torque, current, voltage, electricalPower, motorEfficiency: shaftPower / electricalPower };
+}
+
 /** Maximum static thrust of one motor + propeller at motor voltage V (full throttle). */
 export function maxStaticThrust({ voltage, rho, diameter, ct, cp, kv, resistance, noLoadCurrent, powerFactor = 1 }) {
   const kt = 60 / (2 * Math.PI * kv);
@@ -184,14 +257,20 @@ export function analysePropulsion({ propulsion, geometry, requirements = {}, com
   const liftRotors = geometry.rotors.filter((r) => r.role === 'lift');
   const cruiseRotors = geometry.rotors.filter((r) => r.role === 'cruise');
   const motorCount = geometry.rotors.length;
+  // VTOL with separate cruise rotors may use a different cruise motor and propeller.
+  const separateCruise = Boolean(liftRotors.length && cruiseRotors.length && propulsion.cruise?.motor?.specs && propulsion.cruise?.propeller?.specs);
+  const cm = separateCruise ? propulsion.cruise.motor.specs : m;
+  const cpp = separateCruise ? propulsion.cruise.propeller.specs : p;
+  const cruiseTable = (separateCruise ? propulsion.cruise.propeller.table : propulsion.propeller.table) ?? null;
+  result.separateCruise = separateCruise;
   result.motorMass = m.mass + p.mass;
   result.structureMass = s.structureMass;
 
   // ---- Mass budget -------------------------------------------------------------------------
   const componentMass = items.reduce((sum, i) => sum + (i.specs.mass ?? 0) * (i.quantity ?? 1), 0);
   const payload = requirements.payloadMass?.value ?? 0;
-  const motorsMass = motorCount * m.mass;
-  const propsMass = motorCount * p.mass;
+  const motorsMass = separateCruise ? liftRotors.length * m.mass + cruiseRotors.length * cm.mass : motorCount * m.mass;
+  const propsMass = separateCruise ? liftRotors.length * p.mass + cruiseRotors.length * cpp.mass : motorCount * p.mass;
   const total = componentMass + motorsMass + propsMass + s.structureMass + payload;
   result.mass = {
     rows: [
@@ -305,13 +384,35 @@ export function analysePropulsion({ propulsion, geometry, requirements = {}, com
       }
     }
     const thrust = weight / ld;
-    const shaft = (thrust * V) / s.cruisePropEfficiency;
-    cruisePower = shaft / (s.cruiseMotorEfficiency * s.escEfficiency) + avionicsPower;
-    const max = maxStaticThrust({ voltage: pack.ocv(1 - s.usableFraction) * s.escEfficiency, diameter: cruiseRotors[0].diameter, ...motorArgs });
-    result.cruise = { speed: V, thrust, shaftPower: shaft, totalPower: cruisePower, staticThrust: max.thrust, liftToDrag: ld, ldFromAero };
+    const perRotor = thrust / cruiseRotors.length;
+    const cruiseD = separateCruise ? cpp.diameter : cruiseRotors[0].diameter;
+    const op = cruiseOperatingPoint({ thrust: perRotor, V, rho, diameter: cruiseD, prop: cpp, table: cruiseTable, kv: cm.kv, resistance: cm.resistance, noLoadCurrent: cm.noLoadCurrent });
+    let shaft;
+    if (op && op.propEfficiency > 0.05 && op.propEfficiency < 0.95) {
+      shaft = op.shaftPower * cruiseRotors.length;
+      cruisePower = (op.electricalPower * cruiseRotors.length) / s.escEfficiency + avionicsPower;
+    } else {
+      shaft = (thrust * V) / s.cruisePropEfficiency;
+      cruisePower = shaft / (s.cruiseMotorEfficiency * s.escEfficiency) + avionicsPower;
+    }
+    const max = maxStaticThrust({ voltage: pack.ocv(1 - s.usableFraction) * s.escEfficiency, diameter: cruiseD, ...motorArgs, kv: cm.kv, resistance: cm.resistance, noLoadCurrent: cm.noLoadCurrent, ct: cpp.ct, cp: cpp.cp });
+    result.cruise = { speed: V, thrust, shaftPower: shaft, totalPower: cruisePower, staticThrust: max.thrust, liftToDrag: ld, ldFromAero, op: op && op.propEfficiency > 0.05 && op.propEfficiency < 0.95 ? op : null };
+    if (result.cruise.op) {
+      const o = result.cruise.op;
+      const vEnd = pack.ocv(1 - s.usableFraction);
+      const vAvail = (vEnd - (cruisePower / vEnd) * pack.resistance) * s.escEfficiency;
+      derived.push(
+        { id: 'pr-c-rpm', label: 'Cruise propeller speed', symbol: 'n_c', value: o.n * 2 * Math.PI, unit: 'rad/s', displayUnit: 'rpm', equation: 'C_T(J) ρ n² D⁴ = T/N,  J = V/(nD)', inputs: [q('T/N', 'Thrust per cruise propeller', perRotor, 'N'), q('V', 'Airspeed', V, 'm/s')], provenance: o.source === 'table' ? 'measured' : 'conceptual-estimate', assumptions: [o.source === 'table' ? 'Your measured C_T(J), C_P(J) table, linearly interpolated.' : 'Generic model: x = J/J₀, J₀ = 1.15 P/D, C_T = C_T0(1 − 0.6x − 0.4x²), C_P = C_P0(1 − 0.85x²). Paste measured data on the Propulsion page for a real propeller.'] },
+        { id: 'pr-c-j', label: 'Cruise advance ratio', symbol: 'J', value: o.J, unit: '1', equation: 'J = V / (n D)', inputs: [], provenance: 'analytical' },
+        { id: 'pr-c-etaprop', label: 'Cruise propeller efficiency', symbol: 'η_prop', value: o.propEfficiency, unit: '1', displayUnit: '%', equation: 'η = J C_T / C_P = T V / P_shaft', inputs: [q('C_T', 'Thrust coefficient at J', o.ct, '1'), q('C_P', 'Power coefficient at J', o.cp, '1')], provenance: o.source === 'table' ? 'measured' : 'conceptual-estimate' },
+        { id: 'pr-c-etamot', label: 'Cruise motor efficiency', symbol: 'η_mot', value: o.motorEfficiency, unit: '1', displayUnit: '%', equation: 'η = P_shaft / (U I)', inputs: [q('I', 'Motor current', o.current, 'A'), q('U', 'Motor voltage', o.voltage, 'V')], provenance: 'analytical' },
+      );
+      if (o.voltage > vAvail) checks.push({ id: 'PR-CRU-002', severity: 'error', title: 'The motor cannot reach cruise speed', message: `Cruise needs ${o.voltage.toFixed(1)} V at the motor but the battery gives only about ${vAvail.toFixed(1)} V near the end of the flight. Use a higher-K_v motor, more cells, a higher-pitch propeller or a lower cruise speed.`, equation: 'U_motor ≤ U_battery under load', inputs: [], assumptions: [], provenance: 'analytical' });
+      if (o.outside) notes.push('Cruise advance ratio is beyond the end of your propeller table; the last row was used.');
+    }
     derived.push(
       { id: 'pr-c-thrust', label: 'Cruise thrust (estimate)', symbol: 'T_c', value: thrust, unit: 'N', equation: 'T = W / (L/D)', inputs: [q('W', 'Weight', weight, 'N'), q('L/D', ldFromAero ? 'Lift-to-drag (Aerodynamics page)' : 'Lift-to-drag (your estimate)', ld, '1')], provenance: 'conceptual-estimate', assumptions: [ldFromAero ? 'Steady level flight; L/D from the drag polar on the Aerodynamics page at this mass, speed and altitude.' : 'Steady level flight; L/D is your estimate (this layout has no wing model).'] },
-      { id: 'pr-c-power', label: 'Electrical power in cruise', symbol: 'P_cruise', value: cruisePower, unit: 'W', equation: 'P = T V / (η_prop η_mot η_ESC) + P_avionics', inputs: [q('V', 'Cruise speed', V, 'm/s'), q('η_prop', 'Propeller efficiency', s.cruisePropEfficiency, '1', '%'), q('η_mot', 'Motor efficiency', s.cruiseMotorEfficiency, '1', '%')], provenance: 'conceptual-estimate' },
+      { id: 'pr-c-power', label: 'Electrical power in cruise', symbol: 'P_cruise', value: cruisePower, unit: 'W', equation: result.cruise.op ? 'P = N U I / η_ESC + P_avionics (operating point)' : 'P = T V / (η_prop η_mot η_ESC) + P_avionics', inputs: [q('V', 'Cruise speed', V, 'm/s'), q('η_prop', 'Propeller efficiency', result.cruise.op?.propEfficiency ?? s.cruisePropEfficiency, '1', '%'), q('η_mot', 'Motor efficiency', result.cruise.op?.motorEfficiency ?? s.cruiseMotorEfficiency, '1', '%')], provenance: 'conceptual-estimate' },
       { id: 'pr-c-static', label: 'Static thrust of the cruise propeller (take-off)', symbol: 'T_0', value: max.thrust, unit: 'N', equation: 'Full throttle, static coefficients', inputs: [], provenance: 'analytical' },
     );
     if (!liftRotors.length && max.thrust < 0.3 * weight) {
@@ -387,6 +488,19 @@ export function validatePropulsion(data) {
       if (message) errors.push({ path: `${name}.specs.${key}`, message: `${fields[key].label}: ${message}` });
     }
   }
+  if (data.cruise !== undefined && data.cruise !== null) {
+    if (!isPlainObject(data.cruise)) errors.push({ path: 'cruise', message: 'Cruise set must be an object or null' });
+    else for (const [name, fields] of [['motor', MOTOR_FIELDS], ['propeller', PROPELLER_FIELDS]]) {
+      const part = data.cruise[name];
+      if (!isPlainObject(part) || !isPlainObject(part.specs)) errors.push({ path: `cruise.${name}`, message: `cruise ${name} is missing` });
+      else for (const key of Object.keys(fields)) {
+        const message = validateField(fields, key, part.specs[key]);
+        if (message) errors.push({ path: `cruise.${name}.specs.${key}`, message: `${fields[key].label}: ${message}` });
+      }
+    }
+    if (isPlainObject(data.cruise?.propeller) && data.cruise.propeller.table !== undefined && data.cruise.propeller.table !== null && !validTable(data.cruise.propeller.table)) errors.push({ path: 'cruise.propeller.table', message: 'Invalid cruise propeller table' });
+  }
+  if (data.propeller?.table !== undefined && data.propeller.table !== null && !validTable(data.propeller.table)) errors.push({ path: 'propeller.table', message: `Propeller table must have 3–${PROP_TABLE_LIMIT} rows of { J, ct, cp } in increasing J` });
   if (!(data.batteryId === null || typeof data.batteryId === 'string')) errors.push({ path: 'batteryId', message: 'Invalid battery reference' });
   if (!isPlainObject(data.settings)) errors.push({ path: 'settings', message: 'Settings must be an object' });
   else for (const key of Object.keys(SETTING_FIELDS)) {
@@ -403,10 +517,25 @@ export function sanitizePropulsion(input, fallback) {
   const motor = cleanPart(src.motor, MOTOR_FIELDS, fallback.motor);
   const propeller = cleanPart(src.propeller, PROPELLER_FIELDS, fallback.propeller);
   warnings.push(...motor.warnings, ...propeller.warnings);
+  if (isPlainObject(src.propeller) && src.propeller.table !== undefined && src.propeller.table !== null) {
+    if (validTable(src.propeller.table)) propeller.part.table = src.propeller.table.map((r) => ({ J: r.J, ct: r.ct, cp: r.cp }));
+    else warnings.push('The propeller performance table was invalid and was removed.');
+  }
   const settings = {};
   for (const key of Object.keys(SETTING_FIELDS)) {
     const v = src.settings?.[key];
     settings[key] = v !== undefined && validateField(SETTING_FIELDS, key, v) === null ? v : fallback.settings[key];
   }
-  return { propulsion: { motor: motor.part, propeller: propeller.part, batteryId: typeof src.batteryId === 'string' ? src.batteryId : null, settings }, warnings: input === undefined ? [] : warnings };
+  let cruise = null;
+  if (isPlainObject(src.cruise) && isPlainObject(src.cruise.motor) && isPlainObject(src.cruise.propeller)) {
+    const fbCruise = isPlainObject(fallback.cruise) ? fallback.cruise : { motor: fallback.motor, propeller: fallback.propeller };
+    const cmPart = cleanPart(src.cruise.motor, MOTOR_FIELDS, fbCruise.motor);
+    const cpPart = cleanPart(src.cruise.propeller, PROPELLER_FIELDS, fbCruise.propeller);
+    if (validTable(src.cruise.propeller.table)) cpPart.part.table = src.cruise.propeller.table.map((r) => ({ J: r.J, ct: r.ct, cp: r.cp }));
+    warnings.push(...cmPart.warnings, ...cpPart.warnings);
+    cruise = { motor: cmPart.part, propeller: cpPart.part };
+  } else if (input === undefined && isPlainObject(fallback.cruise)) {
+    cruise = structuredClone(fallback.cruise);
+  }
+  return { propulsion: { motor: motor.part, propeller: propeller.part, ...(cruise ? { cruise } : {}), batteryId: typeof src.batteryId === 'string' ? src.batteryId : null, settings }, warnings: input === undefined ? [] : warnings };
 }

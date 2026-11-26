@@ -19,6 +19,8 @@ import { defaultSounding, sanitizeSounding, validateSounding } from './engineeri
 import { defaultAerodynamics, sanitizeAerodynamics, validateAerodynamics } from './engineering/aerodynamics.js';
 import { defaultStructures, sanitizeStructures, validateStructures } from './engineering/structures.js';
 import { emptyFormulas, sanitizeFormulas, validateFormulas } from './engineering/custom-formulas.js';
+import { emptyMassProperties, sanitizeMassProperties, validateMassProperties } from './engineering/mass-properties.js';
+import { defaultDynamics, sanitizeDynamics, validateDynamics } from './engineering/dynamics.js';
 
 /** Starting propulsion data for a configuration: closest illustrative motor/propeller, size-scaled structure estimate. */
 export function defaultPropulsionFor(configuration) {
@@ -28,8 +30,8 @@ export function defaultPropulsionFor(configuration) {
   return defaultPropulsion(configuration, { ...DEFAULT_SETTINGS, structureMass });
 }
 
-/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (modules.configuration); 3 = Build 3 (modules.components); 4 = Build 4 (modules.propulsion); 5 = balloon glide-sonde mission (modules.sounding); 6 = Build 5 (modules.aerodynamics, modules.structures, modules.formulas). */
-export const PROJECT_SCHEMA_VERSION = 6;
+/** Schema history: 1 = Build 1 (requirements, notes); 2 = Build 2 (modules.configuration); 3 = Build 3 (modules.components); 4 = Build 4 (modules.propulsion); 5 = balloon glide-sonde mission (modules.sounding); 6 = Build 5 (modules.aerodynamics, modules.structures, modules.formulas); 7 = Build 6 (modules.massProperties, modules.dynamics, propulsion.cruise). */
+export const PROJECT_SCHEMA_VERSION = 7;
 
 export const PROJECT_CATEGORIES = Object.freeze([
   {
@@ -172,7 +174,7 @@ export function createProject(init = {}, { now = new Date(), id } = {}) {
     notes: [],
     modules: (() => {
       const configuration = defaultConfiguration(category);
-      return { configuration, components: emptyComponents(), propulsion: defaultPropulsionFor(configuration), sounding: { ...defaultSounding(), enabled: false }, aerodynamics: defaultAerodynamics(configuration), structures: defaultStructures(), formulas: emptyFormulas() };
+      return { configuration, components: emptyComponents(), propulsion: defaultPropulsionFor(configuration), sounding: { ...defaultSounding(), enabled: false }, aerodynamics: defaultAerodynamics(configuration), structures: defaultStructures(), formulas: emptyFormulas(), massProperties: emptyMassProperties(), dynamics: defaultDynamics() };
     })(),
     createdAt: iso,
     updatedAt: iso,
@@ -262,6 +264,8 @@ export function validateProject(doc) {
     for (const message of validateAerodynamics(doc.modules.aerodynamics)) error('modules.aerodynamics', message);
     for (const message of validateStructures(doc.modules.structures)) error('modules.structures', message);
     for (const message of validateFormulas(doc.modules.formulas)) error('modules.formulas', message);
+    for (const message of validateMassProperties(doc.modules.massProperties)) error('modules.massProperties', message);
+    for (const message of validateDynamics(doc.modules.dynamics)) error('modules.dynamics', message);
   }
   if (!isIsoDate(doc.createdAt)) error('createdAt', 'Invalid creation date');
   if (!isIsoDate(doc.updatedAt)) error('updatedAt', 'Invalid modification date');
@@ -345,6 +349,8 @@ export function sanitizeProject(input, { now = new Date() } = {}) {
   const formulas = sanitizeFormulas(base.modules.formulas);
   base.modules.formulas = formulas.formulas;
   warnings.push(...formulas.warnings);
+  base.modules.massProperties = sanitizeMassProperties(base.modules.massProperties, new Set((base.modules.components?.items ?? []).map((i) => i.id)));
+  base.modules.dynamics = sanitizeDynamics(base.modules.dynamics);
   if (isIsoDate(source.createdAt)) base.createdAt = source.createdAt;
   if (isIsoDate(source.updatedAt)) base.updatedAt = source.updatedAt;
   base.deletedAt = null;
@@ -394,6 +400,16 @@ export const MIGRATIONS = Object.freeze({
         formulas: sanitizeFormulas(modules.formulas).formulas,
       },
     };
+  },
+  /** 6 → 7: add mass & balance placements and flight-dynamics settings; a quadplane gains a separate cruise motor and propeller. */
+  6: (doc) => {
+    const modules = isPlainObject(doc.modules) ? doc.modules : {};
+    const propulsion = isPlainObject(modules.propulsion) ? { ...modules.propulsion } : modules.propulsion;
+    if (isPlainObject(propulsion) && !propulsion.cruise && modules.configuration?.layout === 'quadplane') {
+      const d = defaultPropulsionFor(modules.configuration);
+      if (d.cruise) propulsion.cruise = d.cruise;
+    }
+    return { ...doc, modules: { ...modules, propulsion, massProperties: sanitizeMassProperties(modules.massProperties), dynamics: sanitizeDynamics(modules.dynamics) } };
   },
 });
 

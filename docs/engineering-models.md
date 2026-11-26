@@ -304,10 +304,16 @@ The propeller diameter used in every calculation is the one in the configuration
 - the mass-budget identity;
 - every check firing, including hot-and-high needing more than 20 % extra power.
 
+**Propeller at forward speed (Build 6).** Cruise uses the operating point at advance ratio J = V/(nD).
+- C_T(J) and C_P(J) come from your measured table (linear interpolation; paste "J C_T C_P" rows, e.g. UIUC data). Without data, the generic model is used (concept estimate; peak η ≈ 0.6): x = J/J₀, J₀ = 1.15 P/D, C_T = C_T0 (1 − 0.6x − 0.4x²), C_P = C_P0 (1 − 0.85x²).
+- The speed n solving C_T(J) ρ n² D⁴ = T/N is found by bisection. Then P = C_P ρ n³ D⁵, Q = P/(2πn), I = Q/K_t + I₀ and U = 60n/K_v + IR, giving η_prop = TV/P and η_mot = P/(UI).
+- Cruise electrical power = N U I / η_ESC + avionics. The cruise L/D comes from the drag polar (§9) when the layout has a wing.
+- A VTOL with separate cruise rotors can have its own cruise motor and propeller (`propulsion.cruise`).
+- Check PR-CRU-002: the motor voltage needed is more than the battery voltage under load at the end of the flight.
+
 **Limitations.**
-- Static propeller coefficients (no advance ratio) and constant internal resistance.
+- Lift rotors use static coefficients (no edgewise or climbing flight); constant battery internal resistance.
 - No temperature or ageing of the battery, and no ESC or motor thermal model.
-- The fixed-wing cruise uses estimated L/D and efficiencies until the aerodynamics of Build 5.
 
 ## 8. Balloon-launched glide-sonde mission — `js/engineering/sounding.js` (Build 13, early)
 
@@ -431,6 +437,62 @@ Hand-calculation level: straight round tubes, Euler–Bernoulli beams, typical m
 
 **Your formulas** (`modules.formulas.items`): name, symbol, expression, result unit, description, optional limit (≤ or ≥, severity). Variables: mission targets (requirement keys), layout parameters, every numeric design result (derived id with `-` → `_`, for example `ae_cd0`, `pr_mass`), and other formulas by symbol. Formulas are evaluated in dependency order; cycles are reported. Results appear in the design review (id `cf-<symbol>`) and the summary; broken limits are review checks `CF-<symbol>`. The procedure for adding, changing or deleting built-in formulas is in [formulas.md](formulas.md).
 
-## 12. Planned models (not implemented)
+## 12. Mass properties — `js/engineering/mass-properties.js` (Build 6)
 
-CG and inertia from component positions (Build 6), propeller performance at forward speed (Build 6), rigid-body dynamics and control (Build 6), camera geometry and GSD (Build 7), mission energy (Build 7). Each will be added to this document, with tests, before it is used.
+**Frame.** Body axes as in §5: x forward, y to the side, z up, metres. Fixed wings have the nose at x ≈ 0 and the fuselage along −x; multirotors are centred on the origin.
+
+**What is placed.** The same masses as the mass budget in §7:
+- motors and propellers at each rotor (the cruise set for a VTOL cruise rotor);
+- the structure estimate, split over simple shapes:
+  - multirotor: centre disc 40 %, arms 60 % as rods from the centre to each rotor;
+  - winged: wing 45 % as a rod along the 40 %-chord line of each half (with a chordwise term m c̄²/12), fuselage 30 % as a thin-walled tube, tail 15 %, booms 10 %; missing parts' shares are redistributed;
+- every avionics part at its placement (`modules.massProperties.placements`, keyed by component id) or at a default by type (battery on top of a multirotor, along the fuselage of a fixed wing; multirotor ESCs spread over the arms);
+- the payload target at `modules.massProperties.payload` or under the CG area.
+
+**CG and inertia.** m = Σmᵢ, r_cg = Σ mᵢ rᵢ / m; I = Σ [Iᵢ + mᵢ(|rᵢ − r_cg|² E − (rᵢ − r_cg)(rᵢ − r_cg)ᵀ)] with Iᵢ for a thin rod (mL²/12)(E − uuᵀ), a thin-walled tube (rod + m r² about its axis, m r²/2 across) and a solid disc (Ixx = Iyy = m(3R² + h²)/12, Izz = mR²/2); everything else is a point mass. I_xz is reported with the usual sign (−I[0][2]).
+
+**Automatic balance (winged).** A battery without a placement slides along the fuselage (between 3 % and 90 % of its length) so the CG gives a 10 % static margin: x_b = (x_target m − Σ_others mᵢ xᵢ)/m_b. The "Balance with the battery" button writes that position; for multirotors it puts the battery where the CG lands over the rotor centre.
+
+**Hover thrust split.** Minimum-norm thrusts with ΣT = W, Σ T(x − x_cg) = 0 and Σ T(y − y_cg) = 0: T = Aᵀ(AAᵀ)⁻¹b.
+
+**Checks.** MP-CG-001 (CG outside the rotors: a negative thrust is needed; error), MP-CG-002 (a rotor needs > 80 % of full thrust to hover level), MP-CG-003 (CG more than 3 % of the arm radius from the thrust centre), MP-CG-004 (side offset > 1 % span, winged), MP-BAL-001 (battery cannot reach the balance target).
+
+The Aerodynamics static margin (§9) uses, in order: your measured CG, this computed CG, or the suggested CG.
+
+**Tests.** `tests/engineering/mass-properties.test.mjs`.
+
+## 13. Flight dynamics — `js/engineering/dynamics.js`, `linalg.js` (Build 6)
+
+Simulation only: never connected to a real aircraft or flight controller.
+
+**Winged aircraft: linear modes.** Small disturbances about steady level flight at the cruise-speed target (ISA density at the operating altitude), stability axes, Nelson ch. 4–5.
+- Derivatives (per rad):
+  - C_Lα = a_w + η a_t (S_h/S)(1 − dε/dα); C_mα = −C_Lα · SM; C_mq = −2.2 η a_t V_H l_t/c̄ (×1.1 for the fuselage); C_mα̇ = −2 η a_t V_H (l_t/c̄) dε/dα; C_Dα = 2k C_L C_Lα; elevator C_Lδe = η a_t (S_h/S) τ, C_mδe = −η a_t V_H τ, τ = 0.45; tailless C_mq ≈ −0.15 a_w, C_mδe ≈ −0.3 τ;
+  - C_yβ = −η a_v S_v/S (− fuselage side area term); C_nβ = η a_v V_V − 1.3 Vol_f/(S b) (Raymer); C_lβ = −(a_w Γ/6)(1+2λ)/(1+λ) − C_L tan Λ_c/4 /4 − η a_v (S_v/S)(z_v/b); C_lp = −(a_w/12)(1+3λ)/(1+λ); C_np = −C_L/8; C_lr = C_L/4 + fin term; C_nr = −2 η a_v V_V l_t/b − C_D0/4; rudder C_yδr, C_nδr with τ = 0.45;
+  - tail slopes a_t, a_v from Helmbold (fin aspect ratio with a 1.55 end-plate factor), V-tail areas projected (S_h = S cos²Γ_v, S_v = S sin²Γ_v).
+- Longitudinal A (state u, w, q, θ) and lateral A (β, p, r, φ) are Nelson's, using the inertias from §12 (I_xz neglected). Eigenvalues: characteristic polynomial by Faddeev–LeVerrier, roots by Durand–Kerner. Verified against Nelson's Navion example (short period −2.51 ± 2.59i, phugoid −0.017 ± 0.213i).
+- Mode assignment: longitudinal pairs by frequency (short period faster); a real pair is reported as an overdamped mode. Lateral: complex pair = Dutch roll, fastest real root = roll, slowest = spiral.
+- Responses (RK4, 0.01 s): elevator step at 1 s, 1 − cos vertical gust (2 s) applied as relative w, 1 s 5° rudder pulse.
+- Checks: DY-SP-001 (short period unstable, error), DY-SP-002 (ζ_sp < 0.3), DY-DR-001 (Dutch roll unstable), DY-DR-002 (ζ_DR < 0.08, info), DY-SPI-001 (spiral doubles in < 8 s), DY-PH-001 (phugoid doubles in < 20 s, info).
+
+**Hovering aircraft: 6-DoF simulation.**
+- State: position, velocity (world), ZYX Euler angles, body rates, altitude-error integral, and each rotor's thrust.
+- Rigid body: m v̇ = R·[0, 0, ΣT] − m g ẑ − ½ ρ (C_D A) |v_rel| v_rel; I ω̇ = τ − ω × Iω (principal axes).
+- Rotor moments about the CG: τ_x = Σ y T, τ_y = −Σ x T, τ_z = Σ ∓k_Q T, with k_Q = C_P D/(2π C_T).
+- Motors: first-order lag Ṫ = (T_cmd − T)/τ_m, with T_cmd in [0, T_max]; T_max is the full-throttle thrust of §7. τ_m is your value or 0.015 s + 0.15 s/m × D.
+- Control (cascaded, pole placement, ζ = 0.8):
+  - attitude bandwidth ω_att = your value or min(12, 1/(3τ_m));
+  - yaw ω_ψ = min(ω_att/2, 4, √(τ_z,max/(I_zz π/4))), with yaw torque limited to 0.25 k_Q W so roll and pitch keep priority;
+  - height ω_z = ω_att/3, with a small integral term;
+  - position ω_p = ω_att/5, tilt limit 25°;
+  - minimum-norm allocation of [ΣT, τ_x, τ_y, τ_z] to the rotors.
+- Drag area: body frontal area + 3 % of each disc area (+ 2 % of the wing area).
+- Scenario (fixed, repeatable): 1 m climb at 1 s, 2 m forward at 5 s, 1 − cos side gust (your speed) at 10–12 s, 45° yaw at 14 s; 20 s total; RK4 with step min(5 ms, τ_m/5).
+- Metrics: settling time to 5 %, overshoot, gust drift, maximum tilt, time with a motor at a limit, peak thrust ratio.
+- Checks: DY-H-001 (lost control, error), DY-H-002 (motor at a limit > 5 % of the time), DY-H-003 (attitude bandwidth > 1/(2τ_m)).
+
+**Tests.** `tests/engineering/dynamics.test.mjs`.
+
+## 14. Planned models (not implemented)
+
+Camera geometry and GSD, mission energy and waypoints (Build 7); propeller at forward speed for lift rotors in edgewise flight and multirotor forward-flight drag (Build 7); full nonlinear fixed-wing simulation with an autopilot (Build 10, digital twin). Each will be added to this document, with tests, before it is used.

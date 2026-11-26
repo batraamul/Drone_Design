@@ -122,6 +122,6 @@ test('dashboard shows design health and the nine-step flow', async ({ page }) =>
   await go(page, '#/dashboard');
   await expect(page.locator('.health .ring')).toBeVisible();
   await expect(page.locator('.health__tile', { hasText: 'Problems' })).toContainText('0');
-  await expect(page.locator('.flow-list__item')).toHaveCount(9);
+  await expect(page.locator('.flow-list__item')).toHaveCount(11);
   expect(errors).toEqual([]);
 });

@@ -9,8 +9,8 @@ Fifteen controlled builds: the twelve of the master prompt (§26) plus three ext
 | 3 | Avionics and electronics | Component catalogue, interfaces, block diagrams, power draw and compatibility checks | Components can be added, connected, saved and checked | **Complete — v0.4.0** (link budget and SDR in Build 7) |
 | 4 | Propulsion and energy | Motor/propeller/battery models, mass and power budgets, endurance estimates | Equations tested and dependent project values update | **Complete — v0.5.0** (prop at forward speed with Build 5) |
 | 5 | Aerodynamics and structures | Wing geometry, aerodynamic estimates, CG and preliminary structural models | Plots update, units are correct and model limitations are documented | **Complete — v0.6.0** (CG from component placement, forward-speed propeller, OpenVSP bridge move to Build 6) |
-| 6 | Flight dynamics | Attitude/trajectory simulation, wind disturbance, response plots, deterministic scenarios | Reproducible simulation and visible response to parameter changes | Next |
-| 7 | Mission and payload | Civilian payloads, camera calculations, waypoints, profiles, weather inputs, mission feasibility | Payload mass/power affects aircraft budget and mission estimates | Planned |
+| 6 | Flight dynamics | Attitude/trajectory simulation, wind disturbance, response plots, deterministic scenarios | Reproducible simulation and visible response to parameter changes | **Complete — v0.7.0** (Micro Drone Lab moves to Build 7) |
+| 7 | Mission and payload | Civilian payloads, camera calculations, waypoints, profiles, weather inputs, mission feasibility | Payload mass/power affects aircraft budget and mission estimates | Next |
 | 8 | AI perception and health | Computer-vision demonstration, sensor-fusion comparisons, predictive maintenance, anomaly detection | ≥ 1 vision model or documented inference demo, two fusion approaches, a reproducible maintenance/anomaly example | Planned |
 | 9 | AI autonomy and edge computing | Benign path-planning comparisons, RL exercise, model benchmarking, edge deployment estimates | Two path planners, one safe RL exercise, transparent edge benchmark methodology | Planned |
 | 10 | Integrated digital twin | Geometry, dynamics, virtual sensors, camera stream, energy, simulation and AI outputs connected | Simulated aircraft state and AI results synchronised and saved | Planned |
@@ -66,13 +66,21 @@ Also in v0.5.0:
 4. **Formula Library:** built-in registry with calculators and code/test/doc links; user formulas with unit checking, limits, add/change/delete; documented procedure (`docs/formulas.md`). Done.
 5. **Ease of use:** six ready-made example designs, layout-matched example parts, balloon suggestion, dashboard welcome and design-health card, nine-step flow. Done.
 
-## Build 6 plan (next)
+## Build 6 (complete, v0.7.0)
 
-1. **CG and inertia** from component placement in the 3D studio (mass properties feed the static margin). ← *next exact task*
-2. **Propeller at forward speed:** C_T(J), C_P(J) from UIUC-style tables; the cruise operating point.
-3. **Flight dynamics:** 6-DoF rigid-body model, linearised modes (short period, phugoid, Dutch roll), wind and gust disturbance, deterministic scenarios.
-4. **Micro Drone Laboratory** models.
-5. **OpenVSP bridge:** export a VSP script or parameter set for higher-fidelity geometry and aerodynamics.
+1. **CG and inertia** from part placement (Mass & Balance page: drag, nudge or type positions); automatic battery balance; static margin from the computed CG. Done.
+2. **Propeller at forward speed:** C_T(J), C_P(J) from pasted measured data or a generic curve; cruise operating point and efficiencies; separate VTOL cruise motor and propeller. Done.
+3. **Flight dynamics:** fixed-wing derivatives, five modes and responses; 6-DoF hover simulation with a cascaded controller and a repeatable disturbance scenario. Done.
+4. **OpenVSP bridge:** `.vspscript` export of the geometry. Done.
+5. Micro Drone Laboratory: moved to Build 7.
+
+## Build 7 plan (next)
+
+1. **Payload Laboratory:** camera geometry, field of view, ground sample distance, overlap; gimbal and sensor payloads feed the mass and power budgets. ← *next exact task*
+2. **Mission Planner:** waypoints and survey patterns (lawn-mower) from area and GSD; mission energy with climbs, turns, cruise and hover; wind; reserve; export to QGroundControl plan / KML.
+3. **Multirotor forward flight:** body and rotor drag in edgewise flight; best-range speed for multirotors.
+4. **Weather inputs:** ISA deviation and wind profile per mission; links to forecasts (Open-Meteo API).
+5. **Micro Drone Laboratory:** low-Re propellers, small-motor scaling, indoor flight time.
 
 ## Extension builds 13–15 (detail)
 

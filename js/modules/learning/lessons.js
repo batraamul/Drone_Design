@@ -877,6 +877,93 @@ export const LESSONS = Object.freeze([
       'R. D. Blevins, Formulas for Natural Frequency and Mode Shape — cantilever with tip mass.',
     ],
   },
+  {
+    id: 'mass-balance-dynamics',
+    title: 'Balance, inertia and how a drone flies',
+    icon: 'attitude',
+    level: 'Flight dynamics',
+    minutes: 25,
+    summary: 'Why the centre of gravity matters, what moments of inertia do, the natural "modes" of a fixed-wing aircraft, and how a multirotor controller holds it steady.',
+    beginner: [
+      'The centre of gravity (CG) is the balance point of all the parts. A multirotor wants it right over the centre of its rotors, or one motor works harder than the others. A fixed wing wants it a little ahead of the neutral point, or it pitches away by itself.',
+      'Moments of inertia measure how hard it is to start or stop a rotation. Heavy parts far from the CG (big motors on long arms, batteries in the wing tips) make the aircraft slower to roll, pitch or yaw.',
+      'A fixed wing has natural motions, called modes: a quick nodding of the nose (short period), a slow swoop up and down trading height for speed (phugoid), a quick settling of roll, a slow drift into or out of a turn (spiral), and a tail-wagging (Dutch roll).',
+      'A multirotor is unstable on its own. The flight controller measures the tilt many times a second and changes motor speeds to correct it. How quickly it can do that is limited by how fast the motors and propellers change speed.',
+    ],
+    theory: [
+      'CG: x_cg = Σ mᵢ xᵢ / Σ mᵢ, for each axis. Inertia about the CG: I = Σ [Iᵢ + mᵢ(|rᵢ|² E − rᵢ rᵢᵀ)] (parallel-axis theorem), where Iᵢ is each part\'s own inertia (rods, plates, discs) and rᵢ its position from the CG.',
+      'Hover balance: the rotor thrusts must satisfy ΣT = W and zero pitch and roll moment about the CG; the minimum-norm solution shows how unevenly the motors are loaded.',
+      'Small-disturbance equations: ẋ = A x + B u. The eigenvalues λ of A are the modes: λ = −ζω_n ± iω_n√(1−ζ²). Negative real part = stable. Time to half (or double) amplitude = ln 2 / |Re λ|.',
+      'Short period: depends on pitch stiffness C_mα = −C_Lα·SM and pitch damping C_mq (mostly from the tail). Phugoid: ω_p ≈ √2 g/V and ζ_p ≈ 1/(√2 L/D) (Lanchester). Dutch roll: weathercock stability C_nβ (fin) against dihedral effect C_lβ. Spiral: stable when C_lβ C_nr > C_nβ C_lr roughly.',
+      'Multirotor control: attitude loop K_p = I ω², K_d = 2ζ I ω (pole placement). The attitude bandwidth ω should stay below about a third of the motor bandwidth 1/τ_m. Yaw is slowest because it comes only from the rotors\' drag torque.',
+    ],
+    equations: [
+      { expression: 'x_cg = Σ mᵢ xᵢ / Σ mᵢ', note: 'Centre of gravity.' },
+      { expression: 'I = Σ [Iᵢ + mᵢ (|rᵢ|² E − rᵢ rᵢᵀ)]', note: 'Inertia tensor about the CG.' },
+      { expression: 'λ = −ζ ω_n ± i ω_n √(1 − ζ²)', note: 'Mode from an eigenvalue.' },
+      { expression: 'ω_p ≈ √2 g / V,   ζ_p ≈ 1 / (√2 L/D)', note: 'Phugoid (Lanchester).' },
+      { expression: 'K_p = I ω²,   K_d = 2 ζ I ω', note: 'Attitude controller by pole placement.' },
+    ],
+    variables: [
+      { symbol: 'I_xx, I_yy, I_zz', meaning: 'Roll, pitch and yaw moments of inertia', unit: 'kg·m²' },
+      { symbol: 'ω_n, ζ', meaning: 'Natural frequency and damping ratio of a mode', unit: 'rad/s, —' },
+      { symbol: 'τ_m', meaning: 'Motor + propeller response time', unit: 's' },
+      { symbol: 'C_mα, C_nβ, C_lβ', meaning: 'Pitch stiffness, weathercock stability, dihedral effect', unit: '1/rad' },
+    ],
+    example: () => {
+      const V = 15;
+      const wp = (Math.SQRT2 * 9.80665) / V;
+      const LD = 12;
+      return {
+        title: 'Phugoid of a small survey aircraft and a quadcopter attitude loop',
+        steps: [
+          `At V = ${V} m/s the phugoid frequency is ω_p ≈ √2 × 9.81 / ${V} = ${n(wp, 3)} rad/s: a period of ${n((2 * Math.PI) / wp, 3)} s.`,
+          `With L/D = ${LD}, its damping is ζ ≈ 1/(√2 × ${LD}) = ${n(1 / (Math.SQRT2 * LD), 3)} — lightly damped, which is why autopilots hold height and speed actively.`,
+          'A 450 mm quadcopter has I_xx ≈ 0.018 kg·m² and 10-inch propellers with τ_m ≈ 0.05 s. The attitude bandwidth should stay below 1/(3 × 0.05) ≈ 6.7 rad/s.',
+          `With ω = 6.5 rad/s and ζ = 0.8: K_p = 0.018 × 6.5² = ${n(0.018 * 6.5 ** 2, 3)} N·m/rad and K_d = 2 × 0.8 × 0.018 × 6.5 = ${n(2 * 0.8 * 0.018 * 6.5, 3)} N·m·s/rad.`,
+        ],
+      };
+    },
+    calculator: 'cg',
+    practical: [
+      'Weigh the finished aircraft and find its CG by balancing it on two fingertips or on two scales; enter it as the measured CG.',
+      'Swing tests (bifilar pendulum) measure the real moments of inertia.',
+      'Tune the real flight controller from low gains upwards, tethered or in a safe, legal test area. The simulated gains are a starting point for understanding, not settings to fly.',
+      'Mount the flight controller on soft dampers if the arms resonate near the motor speeds.',
+    ],
+    mistakes: [
+      'Balancing with an empty battery bay, then adding a heavy battery.',
+      'Placing heavy items far out on the wings: slow roll response.',
+      'Raising attitude gains past what the motors can follow: oscillation.',
+      'Expecting a tailless aircraft to be directionally stable without winglets or sweep.',
+    ],
+    quiz: [
+      {
+        question: 'A quadcopter\'s CG is 20 mm behind the centre of its rotors. In hover:',
+        options: ['All motors work equally', 'The rear motors work harder', 'The front motors work harder', 'It cannot fly'],
+        answer: 1,
+        explanation: 'The rotors nearer the CG must give more thrust to cancel the pitch moment.',
+      },
+      {
+        question: 'An eigenvalue λ = −0.5 ± 2i is:',
+        options: ['An unstable oscillation', 'A stable oscillation with ζ ≈ 0.24', 'A non-oscillating mode', 'The spiral mode'],
+        answer: 1,
+        explanation: 'Negative real part = stable; ω_n = √(0.25 + 4) ≈ 2.06, ζ = 0.5/2.06 ≈ 0.24.',
+      },
+      {
+        question: 'Doubling the airspeed changes the phugoid period roughly by:',
+        options: ['Halving it', 'Doubling it', 'No change', 'Quadrupling it'],
+        answer: 1,
+        explanation: 'ω_p ≈ √2 g/V, so the period 2π/ω_p is proportional to V.',
+      },
+    ],
+    references: [
+      'R. C. Nelson, Flight Stability and Automatic Control, 2nd ed. — modes, derivatives, Navion example.',
+      'B. Etkin, L. D. Reid, Dynamics of Flight: Stability and Control.',
+      'R. Mahony, V. Kumar, P. Corke, "Multirotor Aerial Vehicles", IEEE Robotics & Automation Magazine, 2012.',
+      'R. W. Beard, T. W. McLain, Small Unmanned Aircraft: Theory and Practice (uavbook).',
+    ],
+  },
 ]);
 
 export const LEARNING_PATHS = Object.freeze([
@@ -887,7 +974,7 @@ export const LEARNING_PATHS = Object.freeze([
   { title: 'Stratospheric sounding and glide-sondes', lessons: ['balloon-glidesonde'], status: 'available' },
   { title: 'RF links and software-defined radio', build: 7 },
   { title: 'Aerodynamics and structures', lessons: ['aerodynamics-stability', 'structures-sizing'], status: 'available' },
-  { title: 'Flight dynamics and control', build: 6 },
+  { title: 'Flight dynamics and control', lessons: ['mass-balance-dynamics'], status: 'available' },
   { title: 'Computer vision and sensor fusion', build: 8 },
   { title: 'Navigation, autonomy and edge AI', build: 9 },
   { title: 'Digital twins', build: 10 },

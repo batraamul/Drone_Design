@@ -7,8 +7,13 @@
 import { h, debounce } from '../utils/dom.js';
 import { icon } from '../ui/icons.js';
 import { badge, button, card, checkCard, derivedList, emptyState, field, formatQuantity, nextId, pageHeader, progressBar, provenanceBadge, quantityInput, selectControl } from '../ui/components.js';
-import { MOTOR_CATALOGUE, PROPELLER_CATALOGUE } from '../engineering/catalogue.js';
-import { MOTOR_FIELDS, PROPELLER_FIELDS, SETTING_FIELDS, maxStaticThrust, validateField } from '../engineering/propulsion.js';
+import { MOTOR_CATALOGUE, PROPELLER_CATALOGUE, motorEntry } from '../engineering/catalogue.js';
+import { MOTOR_FIELDS, PROPELLER_FIELDS, SETTING_FIELDS, maxStaticThrust, parsePropTable, validateField } from '../engineering/propulsion.js';
+
+const defaultCruiseSet = () => {
+  const part = (e) => ({ name: e.name, catalogueId: e.catalogueId, provenance: 'illustrative', source: '', specs: { ...e.specs } });
+  return { motor: part(motorEntry('ill-mot-3520-520')), propeller: part(PROPELLER_CATALOGUE.find((e) => e.catalogueId === 'ill-prop-13x8')) };
+};
 import { provenanceInfo } from '../engineering/provenance.js';
 import { isa } from '../engineering/atmosphere.js';
 import { lineChart } from '../visualisation/plots.js';
@@ -16,10 +21,42 @@ import { flowBar } from '../ui/design-flow.js';
 
 const PROVENANCE = ['illustrative', 'datasheet', 'user-input', 'measured'];
 
-function partEditor(ctx, which, fields, catalogue, title, iconName, description) {
+const partAt = (doc, base, which) => base.reduce((o, k) => o?.[k], doc.modules.propulsion)?.[which];
+
+/** Forward-speed data: paste C_T(J), C_P(J) rows (e.g. from the UIUC Propeller Data Site). */
+function tableEditor(ctx, path, part) {
+  const id = nextId('pt');
+  const rows = part.table?.length ?? 0;
+  const area = h('textarea', { id, class: 'textarea mono', rows: 5, spellcheck: false, placeholder: 'J    CT      CP\n0.10 0.1050  0.0440\n0.20 0.0950  0.0420\n…' }, (part.table ?? []).map((r) => `${r.J} ${r.ct} ${r.cp}`).join('\n'));
+  const apply = button({
+    label: 'Use this data',
+    size: 'sm',
+    variant: 'primary',
+    onClick: () => {
+      const table = parsePropTable(area.value);
+      if (!table) {
+        ctx.notify({ level: 'warning', title: 'Could not read the table', message: 'Paste at least 3 rows of “J CT CP” numbers (spaces, tabs or commas), J increasing. Header lines are ignored.' });
+        return;
+      }
+      ctx.store.set([...path, 'table'], table, { label: 'Set propeller forward-speed data', coalesce: false });
+      ctx.notify({ level: 'success', title: `${table.length} rows in use`, message: 'Cruise now uses your measured C_T(J) and C_P(J).' });
+    },
+  });
+  const clear = button({ label: 'Use the generic model', size: 'sm', disabled: !rows, onClick: () => ctx.store.set([...path, 'table'], null, { label: 'Remove propeller forward-speed data', coalesce: false }) });
+  return h(
+    'details',
+    { class: 'prop-table', open: rows > 0 },
+    h('summary', null, rows ? `Forward-speed data: your table (${rows} rows)` : 'Forward-speed data: generic model — paste measured data'),
+    h('p', { class: 'field__hint' }, 'In cruise the propeller works at advance ratio J = V/(nD), where thrust and power fall. Without data, a generic curve from C_T, C_P and pitch/diameter is used (a concept estimate). Paste rows of “J CT CP” from a wind-tunnel test, e.g. the UIUC Propeller Data Site files.'),
+    field({ id, label: 'J  C_T  C_P (one row per line)', control: area, wide: true }),
+    h('div', { class: 'toolbar' }, apply, clear),
+  );
+}
+
+function partEditor(ctx, which, fields, catalogue, title, iconName, description, base = []) {
   const { store, prefs } = ctx;
-  const part = store.doc.modules.propulsion[which];
-  const path = ['modules', 'propulsion', which];
+  const part = partAt(store.doc, base, which);
+  const path = ['modules', 'propulsion', ...base, which];
   const pickId = nextId('pk');
   const pick = selectControl({
     id: pickId,
@@ -28,7 +65,7 @@ function partEditor(ctx, which, fields, catalogue, title, iconName, description)
     onChange: (value) => {
       const entry = catalogue.find((e) => e.catalogueId === value);
       if (entry) store.set(path, { name: entry.name, catalogueId: entry.catalogueId, provenance: 'illustrative', source: '', specs: { ...entry.specs } }, { label: `Choose ${entry.name}`, coalesce: false });
-      else store.set(path, { ...store.doc.modules.propulsion[which], catalogueId: null, provenance: 'datasheet', name: `My ${which}` }, { label: `Use my own ${which}`, coalesce: false });
+      else store.set(path, { ...partAt(store.doc, base, which), catalogueId: null, provenance: 'datasheet', name: `My ${which}` }, { label: `Use my own ${which}`, coalesce: false });
     },
   });
   const nameId = nextId('pn');
@@ -54,17 +91,17 @@ function partEditor(ctx, which, fields, catalogue, title, iconName, description)
       onUnitChange: (u) => prefs.setDisplayUnit(`prop.${key}`, u),
     });
     controls.push([key, control]);
-    return h('div', { class: 'requirement', dataset: { field: `${which}.${key}` } }, field({ id, label: f.label, control: control.element, hint: f.help }), h('span', { class: 'requirement__badge' }, provenanceBadge(part.provenance)));
+    return h('div', { class: 'requirement', dataset: { field: `${base.length ? 'cruise.' : ''}${which}.${key}` } }, field({ id, label: f.label, control: control.element, hint: f.help }), h('span', { class: 'requirement__badge' }, provenanceBadge(part.provenance)));
   });
   return {
     element: card({
       title,
       icon: iconName,
       description,
-      body: h('div', { class: 'stack' }, field({ id: pickId, label: 'Start from', control: pick, hint: 'Library entries are illustrative examples. For a real design, choose “My own” and enter datasheet or measured values.' }), h('div', { class: 'requirement-list' }, field({ id: nameId, label: 'Name', control: name }), field({ id: provId, label: 'Data provenance', control: prov }), field({ id: srcId, label: 'Source', control: src })), h('div', { class: 'requirement-list' }, rows)),
+      body: h('div', { class: 'stack' }, field({ id: pickId, label: 'Start from', control: pick, hint: 'Library entries are illustrative examples. For a real design, choose “My own” and enter datasheet or measured values.' }), h('div', { class: 'requirement-list' }, field({ id: nameId, label: 'Name', control: name }), field({ id: provId, label: 'Data provenance', control: prov }), field({ id: srcId, label: 'Source', control: src })), h('div', { class: 'requirement-list' }, rows), which === 'propeller' ? tableEditor(ctx, path, part) : null),
     }),
     sync: (force) => {
-      const specs = store.doc.modules.propulsion[which].specs;
+      const specs = partAt(store.doc, base, which).specs;
       for (const [key, control] of controls) control.update(specs[key], { force });
     },
   };
@@ -79,7 +116,8 @@ function settingsEditor(ctx, winged, hovering) {
     ? selectControl({ id: batId, options: batteries.map((b) => ({ value: b.id, label: b.name })), value: store.doc.modules.propulsion.batteryId ?? batteries[0].id, onChange: (v) => store.set(['modules', 'propulsion', 'batteryId'], v, { label: 'Choose battery' }) })
     : null;
   const aeroLD = winged && Boolean(ctx.engineering.aeroModel?.());
-  const keys = ['structureMass', 'usableFraction', 'escEfficiency', 'isaDeltaT', ...(winged ? [...(aeroLD ? [] : ['cruiseLD']), 'cruisePropEfficiency', 'cruiseMotorEfficiency'] : [])];
+  const opKnown = Boolean(ctx.engineering.propulsion?.()?.cruise?.op);
+  const keys = ['structureMass', 'usableFraction', 'escEfficiency', 'isaDeltaT', ...(winged ? [...(aeroLD ? [] : ['cruiseLD']), ...(opKnown ? [] : ['cruisePropEfficiency', 'cruiseMotorEfficiency'])] : [])];
   const controls = [];
   const rows = keys.map((key) => {
     const f = SETTING_FIELDS[key];
@@ -198,7 +236,7 @@ export async function mount(container, ctx, route) {
     const d = store.doc;
     if (!d) return 'none';
     const p = d.modules.propulsion;
-    return [d.modules.configuration?.layout, p.motor.catalogueId, p.propeller.catalogueId, (d.modules.components?.items ?? []).filter((i) => i.type === 'battery').map((b) => b.id).join(',')].join('|');
+    return [d.modules.configuration?.layout, p.motor.catalogueId, p.propeller.catalogueId, p.propeller.table?.length ?? 0, p.cruise ? `${p.cruise.motor.catalogueId}/${p.cruise.propeller.catalogueId}/${p.cruise.propeller.table?.length ?? 0}` : 'same', (d.modules.components?.items ?? []).filter((i) => i.type === 'battery').map((b) => b.id).join(',')].join('|');
   };
   const header = () => pageHeader({ title: route?.module === 'power' ? 'Power & Energy' : 'Propulsion & Energy', icon: 'propeller', subtitle: 'Match motor, propeller and battery to the aircraft; check thrust, mass and endurance.', badges: [badge('Build 4', 'neutral')] });
 
@@ -229,8 +267,20 @@ export async function mount(container, ctx, route) {
     const prop = partEditor(ctx, 'propeller', PROPELLER_FIELDS, PROPELLER_CATALOGUE, 'Propeller', 'propeller', `Diameter from the drawing: ${D ? (D / 0.0254).toFixed(1) : '—'} in (change it in Drone Architecture). Static coefficients C_T and C_P; measured values are on the UIUC Propeller Data Site.`);
     const settings = settingsEditor(ctx, winged, hovering);
     editors = [motor, prop, settings];
+    const both = hovering && geo.rotors.some((r) => r.role === 'cruise');
+    const cruiseCards = [];
+    if (both && doc.modules.propulsion.cruise) {
+      const cMotor = partEditor(ctx, 'motor', MOTOR_FIELDS, MOTOR_CATALOGUE, 'Cruise motor', 'lightning', 'Drives the forward-flight propeller.', ['cruise']);
+      const cProp = partEditor(ctx, 'propeller', PROPELLER_FIELDS, PROPELLER_CATALOGUE, 'Cruise propeller', 'propeller', 'Higher pitch than the lift propellers suits forward flight.', ['cruise']);
+      editors.push(cMotor, cProp);
+      cruiseCards.push(cMotor.element, cProp.element, h('div', { class: 'span-2 toolbar' }, button({ label: 'Use the lift motor and propeller for cruise too', size: 'sm', onClick: () => store.set(['modules', 'propulsion', 'cruise'], null, { label: 'Use lift set for cruise', coalesce: false }) })));
+    } else if (both) {
+      cruiseCards.push(
+        h('div', { class: 'notice notice--info span-2', role: 'note' }, icon('info', { size: 18 }), h('p', null, 'The cruise propeller currently uses the lift motor and propeller, which are usually poor in forward flight. ', button({ label: 'Add a separate cruise motor and propeller', size: 'sm', variant: 'primary', onClick: () => store.set(['modules', 'propulsion', 'cruise'], defaultCruiseSet(), { label: 'Add cruise motor and propeller', coalesce: false }) }))),
+      );
+    }
     results = h('div', { class: 'page-grid span-2 results-grid' });
-    container.replaceChildren(header(), flowBar(ctx, 'propulsion'), h('div', { class: 'page-grid propulsion-grid' }, motor.element, prop.element, settings.element, results));
+    container.replaceChildren(header(), flowBar(ctx, 'propulsion'), h('div', { class: 'page-grid propulsion-grid' }, motor.element, prop.element, ...cruiseCards, settings.element, results));
     renderResults();
   };
 

@@ -33,7 +33,7 @@ test('launches without console errors and lists all 20 modules', async ({ page }
   const errors = collectErrors(page);
   await openApp(page);
   await expect(page).toHaveTitle('Dashboard — AEROLAB X');
-  await expect(page.locator('#sidenav .nav-item')).toHaveCount(23);
+  await expect(page.locator('#sidenav .nav-item')).toHaveCount(24);
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
   await expect(page.locator('#brand-build')).toHaveText(/^Build \d+ · v\d+\.\d+\.\d+$/);
   expect(errors).toEqual([]);

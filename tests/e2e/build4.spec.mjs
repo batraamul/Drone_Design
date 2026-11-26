@@ -27,7 +27,7 @@ test('design flow leads from page to page', async ({ page }) => {
   const errors = collectErrors(page);
   await newProject(page, 'Flow test');
   await go(page, '#/architecture');
-  await expect(page.locator('.flow__goal')).toContainText('Step 2 of 9');
+  await expect(page.locator('.flow__goal')).toContainText('Step 2 of 11');
   await page.locator('.flow').getByRole('button', { name: 'Next: Avionics & electronics' }).click();
   await expect(page.locator('.view h1')).toContainText('Avionics Laboratory');
   await page.getByRole('button', { name: 'Add example parts set' }).click();
@@ -35,7 +35,7 @@ test('design flow leads from page to page', async ({ page }) => {
   await expect(page.locator('.view h1')).toContainText('Propulsion & Energy');
   await expect(page.locator('.flow__step--current')).toContainText('Propulsion');
   await go(page, '#/dashboard');
-  await expect(page.locator('.flow-list__item')).toHaveCount(9);
+  await expect(page.locator('.flow-list__item')).toHaveCount(11);
   expect(errors).toEqual([]);
 });
 

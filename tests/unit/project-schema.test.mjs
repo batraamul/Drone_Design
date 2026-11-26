@@ -88,7 +88,7 @@ test('schema 1 → 2 adds the aircraft configuration and keeps all user content'
   const v1 = { ...v2, schemaVersion: 1, modules: { ...modulesWithoutConfig, legacy: { a: 1 } } };
   const result = migrateProject(v1);
   assert.equal(result.migrated, true);
-  assert.deepEqual(result.steps, ['1→2', '2→3', '3→4', '4→5', '5→6']);
+  assert.deepEqual(result.steps, ['1→2', '2→3', '3→4', '4→5', '5→6', '6→7']);
   assert.equal(result.doc.schemaVersion, PROJECT_SCHEMA_VERSION);
   assert.equal(result.doc.modules.configuration.layout, 'conventional');
   assert.deepEqual(result.doc.modules.legacy, { a: 1 });
@@ -111,7 +111,7 @@ test('schema 2 → 3 adds an empty component list and keeps the configuration', 
   const { components, ...rest } = current.modules;
   const v2 = { ...current, schemaVersion: 2, modules: { ...rest, configuration: { ...rest.configuration, params: { ...rest.configuration.params, armLength: 0.3 } } } };
   const result = migrateProject(v2);
-  assert.deepEqual(result.steps, ['2→3', '3→4', '4→5', '5→6']);
+  assert.deepEqual(result.steps, ['2→3', '3→4', '4→5', '5→6', '6→7']);
   assert.deepEqual(result.doc.modules.components, { items: [], connections: [] });
   assert.equal(result.doc.modules.configuration.params.armLength, 0.3);
   assert.deepEqual(validateProject(result.doc), []);
@@ -123,7 +123,7 @@ test('schema 3 → 4 adds propulsion matched to the propeller size', () => {
   const { propulsion, ...rest } = current.modules;
   const v3 = { ...current, schemaVersion: 3, modules: { ...rest, configuration: { ...rest.configuration, layout: 'quad-x' } } };
   const result = migrateProject(v3);
-  assert.deepEqual(result.steps, ['3→4', '4→5', '5→6']);
+  assert.deepEqual(result.steps, ['3→4', '4→5', '5→6', '6→7']);
   assert.equal(result.doc.modules.propulsion.propeller.catalogueId, 'ill-prop-10x4.5');
   assert.equal(result.doc.modules.propulsion.motor.provenance, 'illustrative');
   assert.deepEqual(validateProject(result.doc), []);

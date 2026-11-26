@@ -33,6 +33,8 @@ import { soundingInputs } from './modules/sounding.js';
 import { aerodynamicModel, analyseAerodynamics } from './engineering/aerodynamics.js';
 import { analyseStructures } from './engineering/structures.js';
 import { evaluateFormulas } from './engineering/custom-formulas.js';
+import { analyseMassProperties } from './engineering/mass-properties.js';
+import { analyseDynamics } from './engineering/dynamics.js';
 import { REQUIREMENT_KEYS } from './engineering/requirements.js';
 import { getModule } from './modules/module-registry.js';
 import * as dashboardView from './modules/dashboard.js';
@@ -49,20 +51,22 @@ import * as soundingView from './modules/sounding.js';
 import * as aerodynamicsView from './modules/aerodynamics.js';
 import * as structuresView from './modules/structures.js';
 import * as formulasView from './modules/formulas.js';
+import * as balanceView from './modules/balance.js';
+import * as dynamicsView from './modules/flight-dynamics.js';
 import * as summaryView from './modules/summary.js';
 import { downloadJSON, pickFile, readFileText, timestampForFile } from './utils/file.js';
 import { slugify } from './utils/format.js';
 import { APP_NAME, APP_VERSION, BUILD_NUMBER } from './version.js';
 
-const VIEWS = { dashboard: dashboardView, projects: projectsView, settings: settingsView, learning: learningView, architecture: architectureView, 'design-studio': designStudioView, avionics: avionicsView, components: componentLibraryView, propulsion: propulsionView, power: propulsionView, sounding: soundingView, summary: summaryView, aerodynamics: aerodynamicsView, structures: structuresView, formulas: formulasView };
+const VIEWS = { dashboard: dashboardView, projects: projectsView, settings: settingsView, learning: learningView, architecture: architectureView, 'design-studio': designStudioView, avionics: avionicsView, components: componentLibraryView, propulsion: propulsionView, power: propulsionView, sounding: soundingView, summary: summaryView, aerodynamics: aerodynamicsView, structures: structuresView, formulas: formulasView, balance: balanceView, 'flight-dynamics': dynamicsView };
 
 const EMPTY_EVALUATION = Object.freeze({ checks: [], derived: [], completeness: { set: 0, total: REQUIREMENT_KEYS.length } });
 
 /** One design review from the requirement checks and the geometry checks. */
-function combineReview(requirements, geometry, electrical, propulsion, sounding, aerodynamics = null, structures = null) {
-  const parts = [geometry, electrical, propulsion, aerodynamics, structures, sounding].filter(Boolean);
+function combineReview(requirements, geometry, electrical, propulsion, sounding, aerodynamics = null, structures = null, massProperties = null, dynamics = null) {
+  const parts = [geometry, electrical, propulsion, massProperties, aerodynamics, structures, dynamics, sounding].filter(Boolean);
   const checks = [...requirements.checks, ...parts.flatMap((p) => p.checks)].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-  return { ...requirements, checks, derived: [...requirements.derived, ...parts.flatMap((p) => p.derived)], geometry, electrical, propulsion, sounding, aerodynamics, structures };
+  return { ...requirements, checks, derived: [...requirements.derived, ...parts.flatMap((p) => p.derived)], geometry, electrical, propulsion, sounding, aerodynamics, structures, massProperties, dynamics };
 }
 
 /** Add the user's own formulas (results and limit checks) to the review. */
@@ -442,9 +446,15 @@ async function boot() {
     compute: (propulsion, geometry, requirements, components, electrical, aero) => analysePropulsion({ propulsion, geometry, requirements, components, electrical, aero }),
     meta: { title: 'Propulsion and energy', model: 'Propeller/motor operating point, battery model, mass budget, endurance (docs/engineering-models.md §7)' },
   });
+  store.define('massProperties', {
+    deps: [{ node: 'geometry' }, ['modules', 'components'], ['modules', 'propulsion'], 'requirements', ['modules', 'massProperties'], { node: 'propulsion' }, { node: 'aeroModel' }],
+    compute: (geometry, components, propulsionModule, requirements, massProperties, propulsion, aero) =>
+      analyseMassProperties({ geometry, components, propulsion: propulsionModule, requirements, massProperties, maxThrustPerRotor: propulsion?.hover?.maxThrust ?? null, balanceX: aero ? -(aero.stability.xNp - 0.1 * aero.mac) : null }),
+    meta: { title: 'Mass and balance', model: 'CG and inertia from part placement (docs/engineering-models.md §12)' },
+  });
   store.define('aerodynamics', {
-    deps: [{ node: 'aeroModel' }, { node: 'propulsion' }, 'requirements'],
-    compute: (model, propulsion, requirements) => (model ? analyseAerodynamics({ model, mass: propulsion?.mass?.total, requirements }) : null),
+    deps: [{ node: 'aeroModel' }, { node: 'propulsion' }, 'requirements', { node: 'massProperties' }],
+    compute: (model, propulsion, requirements, mp) => (model ? analyseAerodynamics({ model, mass: propulsion?.mass?.total, requirements, cg: mp?.mass > 0 ? -mp.cg.x : null }) : null),
     meta: { title: 'Aerodynamics', model: 'Drag polar, performance and static stability (docs/engineering-models.md §9)' },
   });
   store.define('sounding', {
@@ -457,9 +467,14 @@ async function boot() {
     compute: (structures, geometry, configuration, propulsion, aerodynamics, sounding) => analyseStructures({ structures, geometry, configuration, propulsion, aerodynamics, soundingLoadFactor: sounding?.glide?.stats?.maxN ?? null }),
     meta: { title: 'Structures', model: 'Spar and arm beam sizing, deflection and vibration (docs/engineering-models.md §10)' },
   });
+  store.define('dynamics', {
+    deps: [['modules', 'dynamics'], { node: 'geometry' }, ['modules', 'configuration'], { node: 'aerodynamics' }, { node: 'massProperties' }, ['modules', 'propulsion'], { node: 'propulsion' }, 'requirements'],
+    compute: (dynamics, geometry, configuration, aerodynamics, massProperties, propulsionModule, propulsion, requirements) => analyseDynamics({ dynamics, geometry, configuration, aerodynamics, massProperties, propulsionModule, propulsion, requirements }),
+    meta: { title: 'Flight dynamics', model: 'Linearised modes and 6-DoF hover simulation (docs/engineering-models.md §13)' },
+  });
   store.define('baseReview', {
-    deps: [{ node: 'requirements' }, { node: 'geometry' }, { node: 'electrical' }, { node: 'propulsion' }, { node: 'sounding' }, { node: 'aerodynamics' }, { node: 'structures' }],
-    compute: (requirements, geometry, electrical, propulsion, sounding, aerodynamics, structures) => combineReview(requirements, geometry, electrical, propulsion, sounding, aerodynamics, structures),
+    deps: [{ node: 'requirements' }, { node: 'geometry' }, { node: 'electrical' }, { node: 'propulsion' }, { node: 'sounding' }, { node: 'aerodynamics' }, { node: 'structures' }, { node: 'massProperties' }, { node: 'dynamics' }],
+    compute: (requirements, geometry, electrical, propulsion, sounding, aerodynamics, structures, massProperties, dynamics) => combineReview(requirements, geometry, electrical, propulsion, sounding, aerodynamics, structures, massProperties, dynamics),
     meta: { title: 'Design review (models)', model: 'Requirement, geometry, electrical, propulsion, aerodynamic, structural and mission checks' },
   });
   store.define('formulas', {
@@ -482,6 +497,8 @@ async function boot() {
     aerodynamics: () => (store.hasDocument ? store.derive('aerodynamics') : null),
     structures: () => (store.hasDocument ? store.derive('structures') : null),
     formulas: () => (store.hasDocument ? store.derive('formulas') : null),
+    massProperties: () => (store.hasDocument ? store.derive('massProperties') : null),
+    dynamics: () => (store.hasDocument ? store.derive('dynamics') : null),
   };
 
   ctx.actions = createActions(ctx);

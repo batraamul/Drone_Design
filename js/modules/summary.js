@@ -65,8 +65,10 @@ export async function mount(container, ctx) {
 
     const keyResults = [];
     const pushDerived = (list, ids) => list?.derived?.filter((d) => ids.includes(d.id)).forEach((d) => keyResults.push(d));
-    pushDerived(prop, ['pr-mass', 'pr-h-power', 'pr-h-throttle', 'pr-h-tw', 'pr-c-power', 'pr-endurance', 'pr-range']);
+    pushDerived(prop, ['pr-mass', 'pr-h-power', 'pr-h-throttle', 'pr-h-tw', 'pr-c-power', 'pr-c-etaprop', 'pr-endurance', 'pr-range']);
     pushDerived(geo, ['geo-mr-wheelbase', 'geo-mr-loading', 'geo-fw-area', 'geo-fw-ar', 'geo-tail-vh']);
+    pushDerived(ctx.engineering.massProperties(), ['mp-cg-x', 'mp-cg-z', 'mp-ixx', 'mp-iyy', 'mp-izz', 'mp-hover-split']);
+    pushDerived(ctx.engineering.dynamics(), ['dy-sp-zeta', 'dy-ph-zeta', 'dy-dr-zeta', 'dy-spiral', 'dy-h-climb', 'dy-h-gust', 'dy-h-sat']);
     pushDerived(ctx.engineering.aerodynamics(), ['ae-cd0', 'ae-ldmax', 'ae-ld-cruise', 'ae-vs', 'ae-sm']);
     pushDerived(ctx.engineering.structures(), ['st-spar-tube', 'st-spar-ms', 'st-spar-defl', 'st-arm-tube', 'st-arm-ms', 'st-arm-freq']);
     const own = (review.formulas?.derived ?? []);

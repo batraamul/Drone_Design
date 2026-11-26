@@ -51,7 +51,7 @@ export const aerofoilEntry = (id) => AEROFOIL_CATALOGUE.find((a) => a.catalogueI
 
 /** Analysis settings. */
 export const AERO_FIELDS = Object.freeze({
-  cg: { label: 'Centre of gravity behind the nose', symbol: 'x_cg', unit: 'm', displayUnits: ['mm', 'cm', 'm'], min: 0, max: 20, help: 'Leave empty and AEROLAB X suggests a CG for a 10 % static margin.' },
+  cg: { label: 'Measured centre of gravity behind the nose', symbol: 'x_cg', unit: 'm', displayUnits: ['mm', 'cm', 'm'], min: 0, max: 20, help: 'Only once you have weighed the real aircraft. Leave empty to use the CG computed from where the parts sit (Mass & Balance).' },
   laminarFraction: { label: 'Laminar fraction of wetted surface', symbol: 'f_lam', unit: '1', displayUnits: ['%', '1'], min: 0, max: 0.7, help: 'About 10–30 % for smooth composite skins at low Reynolds number; 0 for rough or film-covered skins.' },
   miscDrag: { label: 'Miscellaneous drag allowance', symbol: 'Δ_misc', unit: '1', displayUnits: ['%', '1'], min: 0, max: 1, help: 'Antennas, gaps, hinges, cooling, leakage. 10–25 % is common for small UAVs.' },
   extraDragArea: { label: 'Extra drag area (D/q)', symbol: 'D/q', unit: 'm²', displayUnits: ['cm²', 'm²'], min: 0, max: 2, help: 'Landing gear, gimbal, parked lift rotors and motors (VTOL): roughly C_D × frontal area of each item.' },
@@ -308,12 +308,16 @@ export function powerRequired(m, W, rho, V) {
  * Full aerodynamic analysis with performance at the given mass.
  * @returns {{ status, model, performance, checks, derived, notes }}
  */
-export function analyseAerodynamics({ model, mass, requirements = {} }) {
+export function analyseAerodynamics({ model, mass, requirements = {}, cg = null }) {
   const checks = [];
   const derived = [];
   if (!model) return { status: 'no-wing', model: null, performance: null, checks, derived, notes: [] };
   const notes = [...model.notes];
-  const m = model;
+  // CG source: your measured value, else the one computed from part placement (Mass & Balance), else a suggestion.
+  const s0 = model.stability;
+  const cgSource = s0.cgSet ? 'measured' : typeof cg === 'number' && Number.isFinite(cg) ? 'computed' : 'suggested';
+  const xCg = cgSource === 'computed' ? cg : s0.xCg;
+  const m = { ...model, stability: { ...s0, xCg, cgSource, cgKnown: cgSource !== 'suggested', staticMargin: (s0.xNp - xCg) / model.mac } };
   const ref = m.reference;
   const af = m.aerofoil;
   derived.push(
@@ -328,11 +332,11 @@ export function analyseAerodynamics({ model, mass, requirements = {} }) {
   const sb = m.stability;
   derived.push(
     { id: 'ae-np', label: 'Neutral point behind the nose', symbol: 'x_np', value: sb.xNp, unit: 'm', equation: 'h_n = h_ac + η_t V_H (a_t / a_w)(1 − dε/dα) − K_f d_f² L_f / (c̄ S C_Lα)', inputs: [q('V_H', 'Tail volume', sb.VH, '1'), q('dε/dα', 'Downwash gradient', sb.downwash, '1'), q('x_ac', 'Wing aerodynamic centre', sb.xAc, 'm', 'mm')], provenance: 'conceptual-estimate', assumptions: ['Fuselage term: approximate fit to Raymer Fig. 16.14.', 'dε/dα ≈ 2 C_Lα / (π AR).'] },
-    { id: 'ae-cg', label: sb.cgSet ? 'Centre of gravity behind the nose' : 'Suggested CG for a 10 % static margin', symbol: 'x_cg', value: sb.xCg, unit: 'm', equation: sb.cgSet ? 'your input' : 'x_cg = x_np − 0.10 c̄', inputs: [], provenance: sb.cgSet ? 'user-input' : 'analytical' },
+    { id: 'ae-cg', label: { measured: 'Centre of gravity behind the nose (your value)', computed: 'Centre of gravity behind the nose (from part placement)', suggested: 'Suggested CG for a 10 % static margin' }[sb.cgSource], symbol: 'x_cg', value: sb.xCg, unit: 'm', equation: { measured: 'your input', computed: 'Mass & Balance: x_cg = Σ m_i x_i / Σ m_i', suggested: 'x_cg = x_np − 0.10 c̄' }[sb.cgSource], inputs: [], provenance: { measured: 'measured', computed: 'conceptual-estimate', suggested: 'analytical' }[sb.cgSource] },
     { id: 'ae-sm', label: 'Static margin', symbol: 'SM', value: sb.staticMargin, unit: '1', displayUnit: '%', equation: 'SM = (x_np − x_cg) / c̄', inputs: [q('x_np', 'Neutral point', sb.xNp, 'm', 'mm'), q('x_cg', 'Centre of gravity', sb.xCg, 'm', 'mm'), q('c̄', 'MAC', m.mac, 'm', 'mm')], provenance: 'conceptual-estimate', note: 'Positive = statically stable in pitch. 5–15 % is typical for small UAVs.' },
   );
 
-  if (sb.cgSet) {
+  if (sb.cgKnown) {
     if (sb.staticMargin < 0) checks.push({ id: 'AE-SM-001', severity: 'error', title: 'Unstable in pitch: CG behind the neutral point', message: `The static margin is ${(sb.staticMargin * 100).toFixed(1)} %. Move the battery or payload forward until the CG is at least 5 % MAC ahead of the neutral point, or enlarge the tail.`, equation: 'Required: SM > 0', inputs: [q('x_np', 'Neutral point', sb.xNp, 'm', 'mm'), q('x_cg', 'CG', sb.xCg, 'm', 'mm')], assumptions: [], provenance: 'conceptual-estimate' });
     else if (sb.staticMargin < 0.05) checks.push({ id: 'AE-SM-002', severity: 'warning', title: 'Small static margin', message: `The static margin is ${(sb.staticMargin * 100).toFixed(1)} %. Below about 5 % the aircraft is sensitive to CG errors and gusts.`, equation: 'Guideline: SM ≥ 5 %', inputs: [], assumptions: [], provenance: 'conceptual-estimate' });
     else if (sb.staticMargin > 0.3) checks.push({ id: 'AE-SM-003', severity: 'info', title: 'Large static margin (nose-heavy)', message: `The static margin is ${(sb.staticMargin * 100).toFixed(0)} %. Stable, but the elevator needs more deflection to trim, which costs drag.`, equation: 'Typical: 5–15 %', inputs: [], assumptions: [], provenance: 'conceptual-estimate' });
@@ -370,7 +374,7 @@ export function analyseAerodynamics({ model, mass, requirements = {} }) {
     else if (ref.speed < vStall * 1.3) checks.push({ id: 'AE-STALL-002', severity: 'warning', title: 'Cruise speed is close to stall', message: `Cruise is only ${((ref.speed / vStall - 1) * 100).toFixed(0)} % above the ${vStall.toFixed(1)} m/s stall speed. Aim for at least 30 % margin for gusts and turns.`, equation: 'Guideline: V_cruise ≥ 1.3 V_s', inputs: [q('V_s', 'Stall speed', vStall, 'm/s')], assumptions: [], provenance: 'conceptual-estimate' });
     if (ref.speed > 2 * vMd) checks.push({ id: 'AE-SPD-001', severity: 'info', title: 'Cruise is much faster than best-L/D speed', message: `Best L/D is near ${vMd.toFixed(1)} m/s. A smaller wing would cruise more efficiently at ${ref.speed.toFixed(1)} m/s.`, equation: 'V_cruise vs V_md', inputs: [], assumptions: [], provenance: 'conceptual-estimate' });
   }
-  return { status: 'ok', model, performance, checks, derived, notes };
+  return { status: 'ok', model: m, performance, checks, derived, notes };
 }
 
 // ---- Validation -------------------------------------------------------------------------------

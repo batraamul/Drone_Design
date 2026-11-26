@@ -37,12 +37,13 @@ function formatTick(value) {
  *          marker?: [number, number], width?: number, height?: number, xDomain?: [number, number], yDomain?: [number, number],
  *          tone?: 'accent'|'secondary'}} options
  */
-export function lineChart({ points, xLabel, yLabel, title, description, marker, width = 360, height = 260, xDomain, yDomain, tone = 'accent' }) {
+export function lineChart({ points, xLabel, yLabel, title, description, marker, width = 360, height = 260, xDomain, yDomain, tone = 'accent', extra = [], label = null }) {
   const margin = { top: 28, right: 16, bottom: 44, left: 56 };
   const innerW = width - margin.left - margin.right;
   const innerH = height - margin.top - margin.bottom;
-  const xs = points.map((p) => p[0]);
-  const ys = points.map((p) => p[1]);
+  const all = [points, ...extra.map((e) => e.points)].flat();
+  const xs = all.map((p) => p[0]);
+  const ys = all.map((p) => p[1]);
   const [x0, x1] = xDomain ?? [Math.min(...xs), Math.max(...xs)];
   const [y0, y1] = yDomain ?? [Math.min(...ys), Math.max(...ys)];
   const xTicks = niceTicks(x0, x1, 4);
@@ -78,6 +79,10 @@ export function lineChart({ points, xLabel, yLabel, title, description, marker, 
     ),
     s('rect', { class: 'chart__frame', x: margin.left, y: margin.top, width: innerW, height: innerH }),
     s('path', { class: 'chart__line', d: path }),
+    ...extra.map((e) => s('path', { class: ['chart__line', 'chart__line--extra', e.dashed ? 'chart__line--dashed' : null], d: e.points.map((p, i) => `${i === 0 ? 'M' : 'L'}${sx(p[0]).toFixed(2)} ${sy(p[1]).toFixed(2)}`).join(' ') })),
+    extra.length && label
+      ? s('g', { class: 'chart__legend' }, s('text', { x: margin.left + innerW - 4, y: margin.top + 12, 'text-anchor': 'end' }, [label, ...extra.map((e) => e.label)].join('  ·  ')))
+      : null,
     marker
       ? s(
           'g',

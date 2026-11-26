@@ -115,3 +115,37 @@ test('sanitising keeps valid parts and repairs invalid values', () => {
   assert.equal(warnings.length, 1);
   assert.deepEqual(validatePropulsion(propulsion), []);
 });
+
+// ---- Build 6: propeller at forward speed ------------------------------------------------------
+import { propellerCoefficients, cruiseOperatingPoint, parsePropTable, zeroThrustJ } from '../../js/engineering/propulsion.js';
+
+test('forward-speed propeller: generic model limits and efficiency peak', () => {
+  const prop = { pitch: 0.1143, diameter: 0.254, ct: 0.11, cp: 0.045 };
+  const J0 = zeroThrustJ(prop);
+  const at0 = propellerCoefficients(0, prop);
+  assert.equal(at0.ct, prop.ct);
+  assert.equal(at0.cp, prop.cp);
+  assert.ok(Math.abs(propellerCoefficients(J0, prop).ct) < 1e-12, 'zero thrust at J₀');
+  const etas = [0.2, 0.4, 0.6, 0.8].map((x) => { const c = propellerCoefficients(x * J0, prop); return (x * J0 * c.ct) / c.cp; });
+  assert.ok(Math.max(...etas) > 0.5 && Math.max(...etas) < 0.75, etas.join(','));
+});
+
+test('forward-speed propeller: table interpolation and parsing', () => {
+  const table = parsePropTable('J CT CP\n0.0 0.12 0.05\n0.2 0.10 0.048\n0.4 0.07 0.040\n0.6 0.03 0.025');
+  assert.equal(table.length, 4);
+  const c = propellerCoefficients(0.3, {}, table);
+  assert.ok(Math.abs(c.ct - 0.085) < 1e-12 && Math.abs(c.cp - 0.044) < 1e-12);
+  assert.equal(c.source, 'table');
+  assert.equal(parsePropTable('1 2\nfoo'), null);
+});
+
+test('cruise operating point: thrust matched; power and efficiencies consistent', () => {
+  const prop = { pitch: 8 * 0.0254, diameter: 13 * 0.0254, ct: 0.1, cp: 0.05 };
+  const op = cruiseOperatingPoint({ thrust: 3, V: 15, rho: 1.2, diameter: prop.diameter, prop, kv: 520, resistance: 0.06, noLoadCurrent: 0.6 });
+  const c = propellerCoefficients(op.J, prop);
+  assert.ok(Math.abs(c.ct * 1.2 * op.n ** 2 * prop.diameter ** 4 - 3) < 1e-6);
+  assert.ok(Math.abs(op.propEfficiency - (3 * 15) / op.shaftPower) < 1e-12);
+  assert.ok(op.propEfficiency > 0.3 && op.propEfficiency < 0.8);
+  assert.ok(op.motorEfficiency > 0.5 && op.motorEfficiency < 1);
+  assert.ok(Math.abs(op.J - 15 / (op.n * prop.diameter)) < 1e-12);
+});

@@ -2,8 +2,8 @@
  * The design flow: one ordered path through AEROLAB X so each page leads to the next.
  *
  *   1 Mission & targets → 2 Layout & geometry → 3 Avionics → 4 Propulsion & energy
- *   → 5 Aerodynamics (winged aircraft) → 6 Structures → 7 3D review
- *   → 8 Balloon mission (optional) → 9 Summary & build sheet
+ *   → 5 Mass & balance → 6 Aerodynamics (winged aircraft) → 7 Structures → 8 Flight dynamics
+ *   → 9 3D review → 10 Balloon mission (optional) → 11 Summary & build sheet
  *
  * Each step has a plain-language goal, a "done when" rule evaluated from the project,
  * and the lesson that explains it. flowBar() is placed at the top of every design page.
@@ -61,6 +61,19 @@ export const FLOW_STEPS = Object.freeze([
     lesson: 'propulsion-energy',
   },
   {
+    id: 'balance',
+    title: 'Mass & balance',
+    goal: 'Put every part where it will sit; check the centre of gravity and the inertia.',
+    route: () => ['balance'],
+    status: (ctx) => {
+      const mp = ctx.engineering.massProperties();
+      if (!mp || !(mp.mass > 0)) return 'todo';
+      if (errorsFrom(mp)) return 'problem';
+      return mp.items.some((i) => i.movable && !i.auto) ? 'done' : 'started';
+    },
+    lesson: 'mass-balance-dynamics',
+  },
+  {
     id: 'aerodynamics',
     title: 'Aerodynamics',
     goal: 'Winged aircraft: choose the aerofoil, check drag, stall speed and L/D, and place the centre of gravity.',
@@ -70,7 +83,7 @@ export const FLOW_STEPS = Object.freeze([
       const a = ctx.engineering.aerodynamics();
       if (!a) return 'todo';
       if (errorsFrom(a)) return 'problem';
-      return a.model?.stability?.cgSet ? 'done' : 'started';
+      return a.model?.stability?.cgKnown ? 'done' : 'started';
     },
     lesson: 'aerodynamics-stability',
   },
@@ -85,6 +98,18 @@ export const FLOW_STEPS = Object.freeze([
       return errorsFrom(r) ? 'problem' : 'done';
     },
     lesson: 'structures-sizing',
+  },
+  {
+    id: 'flight-dynamics',
+    title: 'Flight dynamics',
+    goal: 'See how it flies: stability modes for wings, a simulated hover for rotors.',
+    route: () => ['flight-dynamics'],
+    status: (ctx) => {
+      const d = ctx.engineering.dynamics();
+      if (!d || d.status !== 'ok') return 'todo';
+      return errorsFrom(d) ? 'problem' : 'done';
+    },
+    lesson: 'mass-balance-dynamics',
   },
   {
     id: 'design-studio',

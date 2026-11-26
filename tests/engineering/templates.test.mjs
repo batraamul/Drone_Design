@@ -13,6 +13,8 @@ import { aerodynamicModel, analyseAerodynamics } from '../../js/engineering/aero
 import { analyseStructures } from '../../js/engineering/structures.js';
 import { analyseSounding, defaultSounding } from '../../js/engineering/sounding.js';
 import { soundingInputs } from '../../js/modules/sounding.js';
+import { analyseMassProperties, emptyMassProperties } from '../../js/engineering/mass-properties.js';
+import { analyseDynamics, defaultDynamics } from '../../js/engineering/dynamics.js';
 
 for (const t of DESIGN_TEMPLATES) {
   test(`example design "${t.name}" is valid and has no errors`, () => {
@@ -26,10 +28,13 @@ for (const t of DESIGN_TEMPLATES) {
     const el = analyseElectrical(doc.modules.components);
     const aero = aerodynamicModel({ aerodynamics: doc.modules.aerodynamics, configuration: doc.modules.configuration, geometry: geo, requirements: req });
     const pr = analysePropulsion({ propulsion: doc.modules.propulsion, geometry: geo, requirements: req, components: doc.modules.components, electrical: el, aero });
-    const ae = aero ? analyseAerodynamics({ model: aero, mass: pr.mass.total, requirements: req }) : null;
+    const mp = analyseMassProperties({ geometry: geo, components: doc.modules.components, propulsion: doc.modules.propulsion, requirements: req, massProperties: emptyMassProperties(), maxThrustPerRotor: pr.hover?.maxThrust, balanceX: aero ? -(aero.stability.xNp - 0.1 * aero.mac) : null });
+    const ae = aero ? analyseAerodynamics({ model: aero, mass: pr.mass.total, requirements: req, cg: -mp.cg.x }) : null;
+    const dy = analyseDynamics({ dynamics: defaultDynamics(), geometry: geo, configuration: doc.modules.configuration, aerodynamics: ae, massProperties: mp, propulsionModule: doc.modules.propulsion, propulsion: pr, requirements: req });
     const sd = doc.modules.sounding.enabled ? analyseSounding(soundingInputs(doc.modules.sounding, pr, geo, aero)) : null;
     const st = analyseStructures({ structures: doc.modules.structures, geometry: geo, configuration: doc.modules.configuration, propulsion: pr, aerodynamics: ae, soundingLoadFactor: sd?.glide?.stats?.maxN });
-    const errors = [...geo.checks, ...el.checks, ...pr.checks, ...(ae?.checks ?? []), ...st.checks, ...(sd?.checks ?? [])].filter((c) => c.severity === 'error');
+    const errors = [...geo.checks, ...el.checks, ...pr.checks, ...mp.checks, ...(ae?.checks ?? []), ...st.checks, ...dy.checks, ...(sd?.checks ?? [])].filter((c) => c.severity === 'error');
+    if (dy.hover) assert.equal(dy.hover.stable, true, 'hover simulation stable');
     assert.deepEqual(errors.map((c) => c.id), []);
     assert.ok(pr.endurance?.time > 0);
     assert.ok(pr.mass.total <= req.maxTakeoffMass.value, 'mass within the target');

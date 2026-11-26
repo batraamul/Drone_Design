@@ -163,6 +163,18 @@ export const MODULES = Object.freeze([
     dataShared: ['energy', 'massBudget', 'powerBudget'],
   },
   {
+    id: 'balance',
+    title: 'Mass & Balance',
+    icon: 'scale',
+    group: 'labs',
+    status: 'partial',
+    builds: [6],
+    summary: 'Place every part, see the centre of gravity and the inertia, and balance the aircraft.',
+    scope: ['Drag parts on top and side views or type their positions', 'CG, inertia tensor, hover thrust split per rotor', 'Automatic battery position for a 10 % static margin'],
+    dependsOn: ['avionics', 'propulsion'],
+    dataShared: ['massProperties'],
+  },
+  {
     id: 'aerodynamics',
     title: 'Aerodynamics',
     icon: 'airfoil',
@@ -199,7 +211,7 @@ export const MODULES = Object.freeze([
     title: 'Flight Dynamics',
     icon: 'attitude',
     group: 'labs',
-    status: 'planned',
+    status: 'partial',
     builds: [6],
     summary: 'Documented rigid-body models, control response, PID tuning education and disturbance response.',
     scope: [

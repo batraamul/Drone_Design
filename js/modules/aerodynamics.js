@@ -112,7 +112,7 @@ function balanceStrip(m, length) {
       ...mark(s.xNp, 'NP', 'balance--np', 72),
       ...mark(s.xCg, 'CG', s.staticMargin < 0 ? 'balance--bad' : 'balance--cg', 18),
     ),
-    h('figcaption', { class: 'muted' }, `Nose at left. Static margin ${(s.staticMargin * 100).toFixed(1)} % of the MAC${s.cgSet ? '' : ' (suggested CG)'}. CG ahead of NP = stable.`),
+    h('figcaption', { class: 'muted' }, `Nose at left. Static margin ${(s.staticMargin * 100).toFixed(1)} % of the MAC${{ measured: ' (your measured CG)', computed: ' (CG from part placement)', suggested: ' (suggested CG)' }[s.cgSource]}. CG ahead of NP = stable.`),
   );
 }
 
@@ -130,7 +130,7 @@ function results(ctx, a) {
     p ? stat('Stall speed', p.vStall, 'm/s', 'm/s', p.cruise.speed < 1.3 * p.vStall ? 'warn' : null) : null,
     p ? stat('Best-glide speed', p.vMd, 'm/s', 'm/s') : null,
     p ? stat('Best-endurance speed', p.vMp, 'm/s', 'm/s') : null,
-    stat(sb.cgSet ? 'Static margin' : 'Static margin (suggested CG)', sb.staticMargin, '1', '%', sb.staticMargin < 0.05 ? 'warn' : null),
+    stat(sb.cgSource === 'suggested' ? 'Static margin (suggested CG)' : 'Static margin', sb.staticMargin, '1', '%', sb.staticMargin < 0.05 ? 'warn' : null),
   );
   const polar = [];
   for (let cl = -0.2; cl <= m.clMaxWing + 1e-9; cl += m.clMaxWing / 30) polar.push([m.cd0 + m.k * cl * cl, cl]);
@@ -150,7 +150,7 @@ function results(ctx, a) {
   );
   return [
     card({ title: 'Results', icon: 'airfoil', class: 'span-2', description: p ? `At the estimated take-off mass of ${formatQuantity(p.mass, 'kg', p.mass < 1 ? 'g' : 'kg', { digits: 3 })}, ${formatQuantity(m.reference.speed, 'm/s', 'm/s', { digits: 3 })} cruise and ${Math.round(m.reference.altitude)} m altitude.` : 'Set a take-off mass target or complete the mass budget to see performance.', body: h('div', { class: 'stack' }, stats, h('div', { class: 'chart-row' }, charts)) }),
-    card({ title: 'Balance and stability', icon: 'attitude', class: 'span-2', body: h('div', { class: 'stack' }, balanceStrip(m, ctx.engineering.geometry()?.fuselage?.length ?? 1), sb.cgSet ? null : h('p', { class: 'notice notice--info' }, icon('info', { size: 18 }), h('span', null, `Put the centre of gravity about ${formatQuantity(sb.xCg, 'm', 'mm', { digits: 3 })} behind the nose (10 % static margin), then enter your measured CG above.`))) }),
+    card({ title: 'Balance and stability', icon: 'attitude', class: 'span-2', body: h('div', { class: 'stack' }, balanceStrip(m, ctx.engineering.geometry()?.fuselage?.length ?? 1), sb.cgSource === 'measured' ? null : h('p', { class: 'notice notice--info' }, icon('info', { size: 18 }), h('span', null, sb.cgSource === 'computed' ? 'The CG comes from where the parts sit (Mass & Balance). Once the aircraft is built, measure it and enter it above. ' : `Put the centre of gravity about ${formatQuantity(sb.xCg, 'm', 'mm', { digits: 3 })} behind the nose (10 % static margin), then enter your measured CG above. `, h('a', { href: '#/balance' }, 'Open Mass & Balance')))) }),
     card({ title: 'Where the drag comes from', icon: 'layers', class: 'span-2', description: 'Component build-up: skin friction × form factor × interference × wetted area.', body: h('div', { class: 'table-scroll' }, dragTable) }),
     card({
       title: 'Checks and calculations',

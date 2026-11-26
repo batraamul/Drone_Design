@@ -49,6 +49,7 @@ export const UNIT_DIMENSIONS = Object.freeze({
   'N/m': D(0, 1, -2),
   'm⁴': D(4),
   'W/kg': D(2, 0, -3),
+  'kg·m²': D(2, 1),
   'N/W': D(-1, 0, 1),
 });
 export const RESULT_UNITS = Object.keys(UNIT_DIMENSIONS);

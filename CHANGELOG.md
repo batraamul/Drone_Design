@@ -2,6 +2,38 @@
 
 All notable changes to AEROLAB X are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] — 2026-11-26 — Build 6: Mass & balance, flight dynamics, OpenVSP
+
+### Added
+
+- **Mass & Balance:**
+  - every part of the mass budget placed in 3D, with structure as rods, plates and discs;
+  - centre of gravity and full inertia tensor;
+  - **drag parts** on the top and side views, nudge them with the arrow keys, or type positions;
+  - **Balance with the battery**, plus automatic battery placement for a 10 % static margin on fixed wings;
+  - hover thrust split per rotor.
+
+  Five new checks. The static margin in Aerodynamics now uses this computed CG until you enter a measured one.
+- **Flight Dynamics** (simulation only):
+  - **Fixed wing:** stability derivatives from the geometry; short-period, phugoid, roll, spiral and Dutch-roll modes with verdicts and an eigenvalue plot; elevator-step, vertical-gust and rudder-pulse responses. The eigen-solver reproduces Nelson's Navion example.
+  - **Rotorcraft:** nonlinear 6-DoF hover simulation with motor lag, thrust limits, rotor allocation and a cascaded controller tuned from the inertia. A repeatable scenario (climb, move, side gust, yaw turn) gives settling times, overshoot, gust drift and motor saturation.
+
+  Nine new checks.
+- **Propeller at forward speed:**
+  - cruise is now solved at the real advance ratio, giving propeller and motor efficiency instead of fixed estimates;
+  - paste measured C_T/C_P-versus-J data (UIUC format) or use a documented generic curve;
+  - a VTOL can have a **separate cruise motor and propeller**;
+  - new check: the motor cannot reach cruise speed.
+- **OpenVSP script export** from the 3D Design Studio: wing, fuselage, tail, booms and rotor discs, ready for VSPAERO.
+- Lesson "Balance, inertia and how a drone flies", with a CG calculator; ten more built-in formulas (50 in all).
+- Project schema **v7** (`modules.massProperties`, `modules.dynamics`, `propulsion.cruise`). The migration gives existing quadplanes a cruise set.
+
+### Changed
+
+- The design flow has eleven steps: Mass & balance after Propulsion, Flight dynamics after Structures.
+- The VTOL quadplane example now uses a dedicated 13 × 8 in cruise propeller. Its cruise endurance is now 68 min.
+- Line charts can show several series with a legend.
+
 ## [0.6.0] — 2026-11-26 — Build 5: Aerodynamics, structures, Formula Library
 
 ### Added

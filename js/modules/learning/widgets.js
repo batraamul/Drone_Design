@@ -581,6 +581,45 @@ function beamCalculator() {
   );
 }
 
+// ---- Centre of gravity and phugoid -----------------------------------------------------------
+
+function cgCalculator() {
+  const state = { m1: '450', x1: '120', m2: '900', x2: '0', m3: '300', x3: '-150', V: '15' };
+  const ids = Object.fromEntries(Object.keys(state).map((k) => [k, nextId('cg')]));
+  const output = h('div', { class: 'calc__output', 'aria-live': 'polite' });
+  const update = () => {
+    const v = Object.fromEntries(Object.entries(state).map(([k, x]) => [k, parseNumber(x)]));
+    if (Object.values(v).some((x) => x.error || x.value === null) || v.m1.value < 0 || v.m2.value < 0 || v.m3.value < 0 || v.m1.value + v.m2.value + v.m3.value <= 0 || v.V.value <= 0) {
+      output.replaceChildren(h('p', { class: 'field__error' }, 'Enter masses (g, not negative) and positions (mm); a positive speed.'));
+      return;
+    }
+    const M = v.m1.value + v.m2.value + v.m3.value;
+    const x = (v.m1.value * v.x1.value + v.m2.value * v.x2.value + v.m3.value * v.x3.value) / M;
+    const I = [1, 2, 3].reduce((sum, k) => sum + (v[`m${k}`].value / 1000) * ((v[`x${k}`].value - x) / 1000) ** 2, 0);
+    const wp = (Math.SQRT2 * G0) / v.V.value;
+    output.replaceChildren(
+      resultTable(
+        [
+          ['Total mass', `${n(M, 4)} g`, 'm = Σ mᵢ'],
+          ['CG position', `${n(x, 4)} mm`, 'x_cg = Σ mᵢ xᵢ / Σ mᵢ'],
+          ['Pitch inertia of these masses', `${n(I, 3)} kg·m²`, 'I = Σ mᵢ (xᵢ − x_cg)²'],
+          ['Phugoid period (Lanchester)', `${n((2 * Math.PI) / wp, 3)} s`, 'ω_p ≈ √2 g / V'],
+        ],
+        'Balance and phugoid',
+      ),
+    );
+  };
+  const make = (key, label, unit) => field({ id: ids[key], label, control: numberInput({ id: ids[key], value: state[key], label, unit, onInput: (x) => { state[key] = x; update(); } }) });
+  update();
+  return h(
+    'div',
+    { class: 'calc' },
+    h('div', { class: 'calc__inputs' }, make('m1', 'Battery mass', 'g'), make('x1', 'Battery position', 'mm'), make('m2', 'Airframe mass', 'g'), make('x2', 'Airframe position', 'mm'), make('m3', 'Payload mass', 'g'), make('x3', 'Payload position', 'mm'), make('V', 'Airspeed', 'm/s')),
+    output,
+    h('p', { class: 'calc__note' }, 'Point masses along one axis. Moving the heaviest part moves the CG most.'),
+  );
+}
+
 export const WIDGETS = Object.freeze({
   uncertainty: uncertaintyCalculator,
   units: unitConverter,
@@ -592,4 +631,5 @@ export const WIDGETS = Object.freeze({
   balloon: balloonCalculator,
   polar: polarCalculator,
   beam: beamCalculator,
+  cg: cgCalculator,
 });

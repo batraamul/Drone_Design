@@ -139,5 +139,8 @@ export function defaultPropulsion(configuration, settings) {
   const motorId = D < 0.08 ? 'ill-mot-1104-7500' : D <= 0.27 ? 'ill-mot-2212-920' : D <= 0.34 ? (params.span ? 'ill-mot-3520-520' : 'ill-mot-2814-700') : 'ill-mot-4114-400';
   const motor = motorEntry(motorId);
   const part = (e) => ({ name: e.name, catalogueId: e.catalogueId, provenance: 'illustrative', source: '', specs: { ...e.specs } });
-  return { motor: part(motor), propeller: part(prop), batteryId: null, settings: { ...settings } };
+  // Layouts with separate lift and cruise rotors (quadplane) get a dedicated cruise set.
+  const separate = Boolean(params.liftPropDiameter && params.propDiameter && params.span);
+  const cruise = separate ? { motor: part(motorEntry('ill-mot-3520-520')), propeller: part(PROPELLER_CATALOGUE.find((e) => e.catalogueId === 'ill-prop-13x8')) } : null;
+  return { motor: part(motor), propeller: part(prop), ...(cruise ? { cruise } : {}), batteryId: null, settings: { ...settings } };
 }

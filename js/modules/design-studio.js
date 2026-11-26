@@ -12,6 +12,9 @@ import { VIEW_LABELS, drawView } from '../visualisation/views2d.js';
 import { createViewer, webglAvailable } from '../visualisation/view3d.js';
 import { parameterForm } from './architecture.js';
 import { flowBar } from '../ui/design-flow.js';
+import { vspScript } from '../engineering/openvsp.js';
+import { downloadText } from '../utils/file.js';
+import { APP_VERSION } from '../version.js';
 
 const STANDARD_VIEWS = [
   ['iso', 'Perspective'],
@@ -103,6 +106,17 @@ export async function mount(container, ctx) {
       { class: 'button-row' },
       button({ label: 'Export STL (FreeCAD, OpenVSP, 3D printing)', icon: 'download', size: 'sm', onClick: () => exportAs('stl') }),
       button({ label: 'Export glTF (Blender)', icon: 'download', size: 'sm', onClick: () => exportAs('gltf') }),
+      button({
+        label: 'Export OpenVSP script',
+        icon: 'download',
+        size: 'sm',
+        onClick: () => {
+          const text = vspScript(ctx.engineering.geometry(), { name: store.doc.name, appVersion: APP_VERSION });
+          if (!text) return;
+          downloadText(`${store.doc.name.replace(/[^\w-]+/g, '_')}.vspscript`, text, 'text/plain');
+          ctx.notify({ level: 'success', title: 'OpenVSP script saved', message: 'In OpenVSP choose File → Run Script… to rebuild this geometry, then set aerofoils and run VSPAERO.' });
+        },
+      }),
     );
     const legend = h(
       'ul',

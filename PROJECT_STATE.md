@@ -4,13 +4,13 @@ Single source of truth for where development stands. Read this at the start of e
 
 | Item | State |
 |---|---|
-| Current build | **Build 5 — Aerodynamics, structures and Formula Library: complete** (Builds 1–4 complete; Build 13 started early) |
-| Application version | 0.6.0 (Build 5) |
+| Current build | **Build 6 — Mass & balance, flight dynamics, OpenVSP: complete** (Builds 1–5 complete; Build 13 started early) |
+| Application version | 0.7.0 (Build 6) |
 | Licence | Apache-2.0 (LICENSE, NOTICE, CITATION.cff) since v0.4.0 |
 | Repository | `batraamul/Drone_Design` — was empty at inspection (2026-11-21); nothing to preserve |
 | Current commit | Build 1 on `main`, pushed 2026-11-22; GitHub Actions "Test and build" job passed on GitHub |
 | Latest deployed version | Live at https://batraamul.github.io/Drone_Design/ (auto-deployed from `main`) |
-| Last successful test run | 2026-11-26 — `npm test`: structural 12/12 groups; Node tests 144/144; Playwright 40/40 (desktop + mobile Chromium, software WebGL) |
+| Last successful test run | 2026-11-26 — `npm test`: structural 12/12 groups; Node tests 171/171; Playwright 44/44 (desktop + mobile Chromium, software WebGL) |
 
 ## Completed (Build 1)
 
@@ -57,6 +57,32 @@ Single source of truth for where development stands. Read this at the start of e
 - Component Library (partial: motors and propellers in Build 4): search and type filter, specification summaries, add to project.
 - Lesson "Avionics power budgets, regulators and logic levels" with a regulator and battery-life calculator; 7 new glossary terms.
 - Licence: Apache-2.0 with NOTICE and CITATION.cff. Roadmap extended with Builds 13 (stratospheric sounding), 14 (defence-style assurance, civilian scope) and 15 (open publication). The Stratospheric Sounding Lab appears as a planned module (21 navigation entries).
+
+## Completed (v0.7.0 — Build 6)
+
+- **Mass & Balance** (`js/engineering/mass-properties.js`, page `js/modules/balance.js`, route `balance`):
+  - the parts of the mass budget placed in 3D;
+  - CG and inertia tensor (parallel-axis theorem);
+  - parts can be dragged or nudged on the top and side views, or typed;
+  - "Balance with the battery" and automatic battery balance for a 10 % static margin;
+  - hover thrust split.
+
+  Checks MP-*. Aerodynamics uses the computed CG unless a measured CG is entered.
+- **Flight Dynamics** (`js/engineering/dynamics.js`, `linalg.js`, page `js/modules/flight-dynamics.js`):
+  - fixed-wing derivatives, longitudinal and lateral state matrices, five modes; the eigen-solver is verified on Nelson's Navion example;
+  - elevator, gust and rudder responses;
+  - a nonlinear 6-DoF hover simulation with motor lag, allocation and a pole-placed cascaded controller, flying a repeatable scenario.
+
+  Checks DY-*.
+- **Propeller at forward speed:**
+  - C_T(J) and C_P(J) from a pasted table or a generic curve;
+  - cruise operating point with propeller and motor efficiency;
+  - VTOL `propulsion.cruise` set;
+  - check PR-CRU-002.
+- **OpenVSP script export** (`js/engineering/openvsp.js`) from the 3D Design Studio.
+- Lesson "Balance, inertia and how a drone flies" (CG calculator); 50 built-in formulas.
+- **Design flow:** eleven steps.
+- Project schema **v7**.
 
 ## Completed (v0.6.0 — Build 5)
 
@@ -119,7 +145,7 @@ Single source of truth for where development stands. Read this at the start of e
 
 ## Pending modules
 
-3D Studio mass/CG/placement (Build 6) · Avionics link budget and SDR (Build 7) · Propeller at forward speed (Build 6) · Aerodynamics remainder: vortex lattice, flaps, twist (Build 6) · Structures remainder: torsion, joints, composite lay-ups (Build 11) · Flight Dynamics, Micro Drone Laboratory, Flight Simulator (Builds 6/10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab remainder: sensor models, WMO export, glide wind drift (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
+Avionics link budget and SDR (Build 7) · Payload Laboratory and Mission Planner (Build 7) · Multirotor forward-flight drag (Build 7) · Aerodynamics remainder: vortex lattice, flaps, twist (later) · Structures remainder: torsion, joints, composite lay-ups (Build 11) · Micro Drone Laboratory (Build 7) · Flight Simulator / nonlinear fixed-wing with autopilot (Build 10) · Payload Laboratory, Mission Planner (Build 7) · AI & Autonomous Intelligence Lab (Builds 8–10) · Safety & Reliability, Engineering Reports (Build 11) · Learning Centre completion (continuous) · Release hardening (Build 12) · Stratospheric Sounding Lab remainder: sensor models, WMO export, glide wind drift (Build 13) · Defence-style assurance (Build 14) · Open publication (Build 15).
 
 ## Known issues and limitations
 
@@ -129,9 +155,11 @@ Single source of truth for where development stands. Read this at the start of e
 - Interactive charts are basic SVG (sufficient so far; no Chart.js dependency).
 - The 3D model is a conceptual shape: flat surfaces, no aerofoil thickness, landing gear or components yet.
 - The glide-sonde simulation has no wind in the glide (drag comes from the Aerodynamics model when the design wing is used); the balloon ascent rate rises with height under the constant-C_D assumption (real balloons climb at a more nearly constant rate).
-- Aerodynamics: untwisted wings, no flaps, lifting line is less accurate below AR ≈ 4 and for high sweep (deltas); the fuselage term of the neutral point is an approximate fit. CG is entered by hand until component placement (Build 6).
+- Aerodynamics: untwisted wings, no flaps; lifting line is less accurate below AR ≈ 4 and for high sweep (deltas); the fuselage term of the neutral point is an approximate fit.
+- Flight dynamics: concept-level derivatives (strip theory, tail-volume methods), I_xz neglected in the lateral modes, linear fixed-wing responses; the hover controller is an idealised cascaded PID (no sensor noise, estimator or delays). For understanding and comparison only.
+- Mass & balance: structure is distributed by fixed shares; component boxes are point masses.
 - Structures: round tubes and beam theory only; no torsion, joints, skins or buckling.
-- Multirotor forward-flight drag is not modelled yet (Build 6).
+- Multirotor forward-flight drag is not modelled yet (Build 7).
 - Component data merges as one unit in Drive sync: if two devices edit components at the same time, the later edit set wins. Other project fields still merge field by field.
 - When a Drive merge combines a category change with a layout edit from another device, the Architecture page asks for a layout. This is handled, but the user has to choose one.
 - Projects are per browser and per origin (hosted site vs. localhost); move them with backups.
@@ -161,4 +189,4 @@ Single source of truth for where development stands. Read this at the start of e
 
 ## Next exact task
 
-**Build 6, task 1:** CG and inertia from component placement in the 3D studio, so the static margin uses the computed CG. Then propeller at forward speed, the 6-DoF flight-dynamics model and the OpenVSP bridge. See `docs/roadmap.md` (Build 6 plan).
+**Build 7, task 1:** Payload Laboratory: camera geometry, field of view, ground sample distance and overlap, with payloads feeding the mass and power budgets. Then the Mission Planner (survey patterns, mission energy, QGroundControl/KML export). See `docs/roadmap.md` (Build 7 plan).

@@ -6,7 +6,7 @@
 
 Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 
-## What it does (Builds 1–5)
+## What it does (Builds 1–6)
 
 - **Start from an example** — six complete working designs (survey quad, heavy-lift hexa, mapping fixed wing, VTOL quadplane, micro quad, balloon glide-sonde) to learn from and edit; or start blank and follow the nine-step design flow.
 
@@ -25,8 +25,11 @@ Hosted app (after deployment): **https://batraamul.github.io/Drone_Design/**
 - **Propulsion & Energy** (Build 4) — match motor, propeller and battery: hover power, throttle, thrust-to-weight, battery sag, mass budget, endurance and range, including hot-and-high conditions.
 - **Aerodynamics** (Build 5) — aerofoil, lifting-line span efficiency, drag build-up, drag polar, stall and best-glide/endurance speeds, power required, neutral point, static margin and suggested CG.
 - **Structural Analysis** (Build 5) — wing spar and arm/boom tubes, auto-sized from common sizes: stress and margin of safety, deflection, and arm vibration against the rotor frequencies.
+- **Mass & Balance** (Build 6) — drag parts on top and side views; see the centre of gravity, inertia and per-rotor hover load; balance with the battery in one click.
+- **Flight Dynamics** (Build 6, simulation only) — fixed-wing stability modes (short period, phugoid, roll, spiral, Dutch roll) with responses; a 6-DoF hover simulation with a tuned controller, gusts and motor limits.
+- **OpenVSP export** — a `.vspscript` that rebuilds the geometry in OpenVSP for VSPAERO analysis.
 - **Formula Library** (Build 5) — every built-in equation with a calculator and links to its code, test and reference; add, change and delete your own unit-checked formulas that use any design value and appear in the review and summary ([procedure](docs/formulas.md)).
-- **Design flow and Design Summary** — nine steps from targets to a printable build sheet with parts list (CSV), key results with provenance, and paper and patent guidance.
+- **Design flow and Design Summary** — eleven steps from targets to a printable build sheet with parts list (CSV), key results with provenance, and paper and patent guidance.
 - **Stratospheric Sounding Lab** (early Build 13) — carry the aircraft to 33 km on a balloon, simulate the release, stall and pull-out, the glide with sonde sampling and a hybrid powered return; wind-aware ascent prediction (SondeHub/Tawhiri) with KML export.
 - **Open-source tools** — export the 3D model to STL/glTF for FreeCAD, OpenVSP, Blender or 3D printing; the Learning Centre links NPTEL, Coursera and MIT courses, books, UIUC propeller data, and tools such as XFLR5, ArduPilot, PX4 and QGroundControl.
 - **Learning Centre** — lessons on data provenance and model fidelity, SI units, the standard atmosphere, multirotor layout and hover, wing planform and tail sizing, avionics power budgets, propulsion matching and balloon glide-sondes, wing aerodynamics and balance, and spar and arm sizing, with calculators and knowledge checks; searchable glossary.
